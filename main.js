@@ -1,148 +1,121 @@
 import * as THREE from "three";
-
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
-class BasicWorldDemo {
-  constructor() {
-    this._Initialize();
-  }
+export const sine_cos_wave_plane = () => {
+  // SCENE
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xa8def0);
 
-  _Initialize() {
-    this._threejs = new THREE.WebGLRenderer({
-      antialias: true,
-    });
-    this._threejs.shadowMap.enabled = true;
-    this._threejs.shadowMap.type = THREE.PCFSoftShadowMap;
-    this._threejs.setPixelRatio(window.devicePixelRatio);
-    this._threejs.setSize(window.innerWidth, window.innerHeight);
+  // CAMERA
+  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.y = 5;
 
-    document.body.appendChild(this._threejs.domElement);
+  // RENDERER
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.shadowMap.enabled = true;
 
-    window.addEventListener(
-      "resize",
-      () => {
-        this._OnWindowResize();
-      },
-      false
-    );
+  // CONTROLS
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.target = new THREE.Vector3(0, 0, -40);
+  controls.update();
 
-    const fov = 60;
-    const aspect = 1920 / 1080;
-    const near = 1.0;
-    const far = 1000.0;
-    this._camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-    this._camera.position.set(75, 20, 0);
+  // AMBIENT LIGHT
+  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+  // DIRECTIONAL LIGHT
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+  dirLight.position.x += 20;
+  dirLight.position.y += 20;
+  dirLight.position.z += 20;
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.width = 4096;
+  dirLight.shadow.mapSize.height = 4096;
+  const d = 25;
+  dirLight.shadow.camera.left = -d;
+  dirLight.shadow.camera.right = d;
+  dirLight.shadow.camera.top = d;
+  dirLight.shadow.camera.bottom = -d;
+  dirLight.position.z = -30;
 
-    this._scene = new THREE.Scene();
+  let target = new THREE.Object3D();
+  target.position.z = -20;
+  dirLight.target = target;
+  dirLight.target.updateMatrixWorld();
 
-    let light = new THREE.DirectionalLight(0xffffff, 1.0);
-    light.position.set(20, 100, 10);
-    light.target.position.set(0, 0, 0);
-    light.castShadow = true;
-    light.shadow.bias = -0.001;
-    light.shadow.mapSize.width = 2048;
-    light.shadow.mapSize.height = 2048;
-    light.shadow.camera.near = 0.1;
-    light.shadow.camera.far = 500.0;
-    light.shadow.camera.near = 0.5;
-    light.shadow.camera.far = 500.0;
-    light.shadow.camera.left = 100;
-    light.shadow.camera.right = -100;
-    light.shadow.camera.top = 100;
-    light.shadow.camera.bottom = -100;
-    this._scene.add(light);
+  dirLight.shadow.camera.lookAt(0, 0, -30);
+  scene.add(dirLight);
+  scene.add(new THREE.CameraHelper(dirLight.shadow.camera));
 
-    light = new THREE.AmbientLight(0x101010);
-    this._scene.add(light);
-
-    const controls = new OrbitControls(this._camera, this._threejs.domElement);
-    controls.target.set(0, 20, 0);
-    controls.update();
-
-    // const loader = new THREE.CubeTextureLoader();
-    // const texture = loader.load([
-    //   "./resources/posx.jpg",
-    //   "./resources/negx.jpg",
-    //   "./resources/posy.jpg",
-    //   "./resources/negy.jpg",
-    //   "./resources/posz.jpg",
-    //   "./resources/negz.jpg",
-    // ]);
-    // this._scene.background = texture;
-
-    const plane = new THREE.Mesh(
-      new THREE.PlaneGeometry(100, 100, 10, 10),
-      new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-      })
-    );
-    plane.castShadow = false;
-    plane.receiveShadow = true;
-    plane.rotation.x = -Math.PI / 2;
-    this._scene.add(plane);
-
-    const box = new THREE.Mesh(
-      new THREE.BoxGeometry(2, 2, 2),
-      new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-      })
-    );
-    box.position.set(0, 1, 0);
-    box.castShadow = true;
-    box.receiveShadow = true;
-    this._scene.add(box);
-
-    for (let x = -8; x < 8; x++) {
-      for (let y = -8; y < 8; y++) {
-        const box = new THREE.Mesh(
-          new THREE.BoxGeometry(2, 2, 2),
-          new THREE.MeshStandardMaterial({
-            color: 0x808080,
-          })
-        );
-        box.position.set(
-          Math.random() + x * 5,
-          Math.random() * 4.0 + 2.0,
-          Math.random() + y * 5
-        );
-        box.castShadow = true;
-        box.receiveShadow = true;
-        this._scene.add(box);
+  // const geometry = new THREE.PlaneBufferGeometry(30, 30, 30, 30);
+  const geometry = new THREE.BufferGeometry();
+  // create a simple square shape. We duplicate the top left and bottom right
+  // vertices because each vertex needs to appear once per triangle.
+  const generateSphereVertices = (radius, vertices) => {
+    const len = vertices * 3;
+    const result = new Float32Array(len);
+    let count = 0;
+    for (let i = 0; i < vertices; i++) {
+      console.log(i);
+      const x = 2 * radius * Math.random() - radius;
+      const y = 2 * radius * Math.random() - radius;
+      const z = 2 * radius * Math.random() - radius;
+      if (x * x + y * y + z * z > radius * radius) {
+        --i;
+        continue;
       }
+      result[count++] = x;
+      result[count++] = y;
+      result[count++] = z;
     }
+    return result;
+  };
+  const vertices = generateSphereVertices(5, 1000);
 
-    // box = new THREE.Mesh(
-    //   new THREE.SphereGeometry(2, 32, 32),
-    //   new THREE.MeshStandardMaterial({
-    //     color: 0xffffff,
-    //     wireframe: true,
-    //     wireframeLinewidth: 4,
-    //   })
-    // );
-    // box.position.set(0, 0, 0);
-    // box.castShadow = true;
-    // box.receiveShadow = true;
-    // this._scene.add(box);
+  // itemSize = 3 because there are 3 values (components) per vertex
+  geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
+  const material = new THREE.PointsMaterial({
+    color: 0xf2a23a,
+    size: 0.4,
+  });
+  const plane = new THREE.Points(geometry, material);
+  plane.receiveShadow = true;
+  plane.castShadow = true;
+  plane.rotation.x = -Math.PI / 2;
+  plane.position.z = -30;
+  scene.add(plane);
 
-    this._RAF();
+  const count = geometry.attributes.position.count;
+
+  // ANIMATE
+  function animate() {
+    // SINE WAVE
+    const now = Date.now() / 300;
+    for (let i = 0; i < count; i++) {
+      const x = geometry.attributes.position.getX(i);
+      const y = geometry.attributes.position.getY(i);
+
+      const newX = (x + 0.1) % 10;
+
+      geometry.attributes.position.setX(i, newX);
+    }
+    geometry.computeVertexNormals();
+    geometry.attributes.position.needsUpdate = true;
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
   }
 
-  _OnWindowResize() {
-    this._camera.aspect = window.innerWidth / window.innerHeight;
-    this._camera.updateProjectionMatrix();
-    this._threejs.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+  animate();
+
+  // RESIZE HANDLER
+  function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
   }
+  window.addEventListener("resize", onWindowResize);
+};
 
-  _RAF() {
-    requestAnimationFrame(() => {
-      this._threejs.render(this._scene, this._camera);
-      this._RAF();
-    });
-  }
-}
-
-let _APP = null;
-
-window.addEventListener("DOMContentLoaded", () => {
-  _APP = new BasicWorldDemo();
-});
+sine_cos_wave_plane();
