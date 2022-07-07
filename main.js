@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { ShaderLoader } from "./ShaderLoader";
 
 export const sine_cos_wave_plane = () => {
   // SCENE
@@ -160,4 +161,16 @@ export const sine_cos_wave_plane = () => {
   window.addEventListener("resize", onWindowResize);
 };
 
-sine_cos_wave_plane();
+window.onload = function () {
+  var sl = new ShaderLoader();
+  sl.loadShaders(
+    {
+      render_fs: "",
+      render_vs: "",
+    },
+    "http://localhost:3000/morph/",
+    sine_cos_wave_plane
+  );
+};
+
+// sine_cos_wave_plane();
