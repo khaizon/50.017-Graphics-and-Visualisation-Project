@@ -15,8 +15,9 @@ void main() {
     vec3 destination = texture2D(textureB, vUv).xyz;
 
      //lerp
-    vec3 p1 = vec3(1.0, 5.0, 7.0);
-    vec3 p2 = vec3(3.0, -5.0, -3.0);
+    // vec3 p1 = vec3(20.0, 20.0, 20.0);
+    vec3 p1 = destination*1.1;
+    vec3 p2 = origin*1.2;
     // vec3 pos = mix(origin, destination, timer);
     vec3 pos = toBezier(timer, origin, p1, p2, destination);
 

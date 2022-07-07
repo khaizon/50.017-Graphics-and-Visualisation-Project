@@ -71,6 +71,8 @@
 
             //first model
             var dataA = getRandomData(width, height, 256);
+
+            //creates a texture from the data, width and height
             var textureA = new THREE.DataTexture(dataA, width, height, THREE.RGBFormat, THREE.FloatType, THREE.DEFAULT_MAPPING, THREE.RepeatWrapping, THREE.RepeatWrapping);
             textureA.needsUpdate = true;
 
