@@ -7,7 +7,12 @@ export const sine_cos_wave_plane = () => {
   scene.background = new THREE.Color(0xa8def0);
 
   // CAMERA
-  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+  const camera = new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
   camera.position.y = 5;
 
   // RENDERER
@@ -70,10 +75,37 @@ export const sine_cos_wave_plane = () => {
     }
     return result;
   };
-  const vertices = generateSphereVertices(5, 1000);
+  const sphereVertices = generateSphereVertices(5, 1000);
+
+  const generateBoxVertices = (size, vertices) => {
+    const len = vertices * 3;
+    const result = new Float32Array(len);
+    var count = 0;
+    for (let i = 0; i < vertices; i++) {
+      const x = 2 * size * Math.random() - size;
+      const y = 2 * size * Math.random() - size;
+      const z = 2 * size * Math.random() - size;
+      result[count++] = x;
+      result[count++] = y;
+      result[count++] = z;
+    }
+    return result;
+  };
+  const boxVertices = generateBoxVertices(5, 1000);
 
   // itemSize = 3 because there are 3 values (components) per vertex
-  geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
+  geometry.setAttribute(
+    "startPosition",
+    new THREE.BufferAttribute(sphereVertices, 3)
+  );
+  geometry.setAttribute(
+    "position",
+    new THREE.BufferAttribute(sphereVertices, 3)
+  );
+  geometry.setAttribute(
+    "endPosition",
+    new THREE.BufferAttribute(boxVertices, 3)
+  );
   const material = new THREE.PointsMaterial({
     color: 0xf2a23a,
     size: 0.4,
@@ -90,14 +122,24 @@ export const sine_cos_wave_plane = () => {
   // ANIMATE
   function animate() {
     // SINE WAVE
-    const now = Date.now() / 300;
+    // const now = Date.now() / 30000000;
+    let now = 0;
+    now += 0.01;
     for (let i = 0; i < count; i++) {
-      const x = geometry.attributes.position.getX(i);
-      const y = geometry.attributes.position.getY(i);
+      const startPositionX = geometry.attributes.startPosition.getX(i);
+      const startPositionY = geometry.attributes.startPosition.getY(i);
+      const startPositionZ = geometry.attributes.startPosition.getZ(i);
 
-      const newX = (x + 0.1) % 10;
+      const endPositionX = geometry.attributes.endPosition.getX(i);
+      const endPositionY = geometry.attributes.endPosition.getY(i);
+      const endPositionZ = geometry.attributes.endPosition.getZ(i);
 
-      geometry.attributes.position.setX(i, newX);
+      const positionX = startPositionX * (1 - now) + endPositionX * now;
+      const positionY = startPositionY * (1 - now) + endPositionY * now;
+      const positionZ = startPositionZ * (1 - now) + endPositionZ * now;
+
+      geometry.attributes.position.setXYZ(i, positionX, positionY, positionZ);
+      // geometry.attributes.position.setX(i, newX);
     }
     geometry.computeVertexNormals();
     geometry.attributes.position.needsUpdate = true;
