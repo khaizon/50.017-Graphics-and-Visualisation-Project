@@ -62,7 +62,6 @@ export const sine_cos_wave_plane = () => {
     const result = new Float32Array(len);
     let count = 0;
     for (let i = 0; i < vertices; i++) {
-      console.log(i);
       const x = 2 * radius * Math.random() - radius;
       const y = 2 * radius * Math.random() - radius;
       const z = 2 * radius * Math.random() - radius;
@@ -76,7 +75,8 @@ export const sine_cos_wave_plane = () => {
     }
     return result;
   };
-  const sphereVertices = generateSphereVertices(5, 1000);
+  let sphereVertices = generateSphereVertices(5, 1000);
+  let positions = generateSphereVertices(5, 1000);
 
   const generateBoxVertices = (size, vertices) => {
     const len = vertices * 3;
@@ -97,7 +97,7 @@ export const sine_cos_wave_plane = () => {
   // itemSize = 3 because there are 3 values (components) per vertex
   geometry.setAttribute(
     "startPosition",
-    new THREE.BufferAttribute(sphereVertices, 3)
+    new THREE.BufferAttribute(positions, 3)
   );
   geometry.setAttribute(
     "position",
@@ -107,43 +107,59 @@ export const sine_cos_wave_plane = () => {
     "endPosition",
     new THREE.BufferAttribute(boxVertices, 3)
   );
-  const material = new THREE.PointsMaterial({
-    color: 0xf2a23a,
-    size: 0.4,
+
+  const material = new THREE.ShaderMaterial({
+    uniforms: {
+      pointSize: { type: "f", value: 2 },
+      alpha: { type: "f", value: 0.5 },
+    },
+    vertexShader: ShaderLoader.get("render_vs.vert"),
+    fragmentShader: ShaderLoader.get("render_fs.frag"),
+    transparent: true,
+    blending: THREE.AdditiveBlending,
   });
-  const plane = new THREE.Points(geometry, material);
-  plane.receiveShadow = true;
-  plane.castShadow = true;
-  plane.rotation.x = -Math.PI / 2;
-  plane.position.z = -30;
-  scene.add(plane);
+
+  const points = new THREE.Points(geometry, material);
+  points.receiveShadow = true;
+  points.castShadow = true;
+  points.rotation.x = -Math.PI / 2;
+  points.position.z = -30;
+  scene.add(points);
 
   const count = geometry.attributes.position.count;
 
   // ANIMATE
+  let now = 0;
   function animate() {
     // SINE WAVE
     // const now = Date.now() / 30000000;
-    let now = 0;
-    now += 0.01;
+    if (now < 1) now += 0.01;
     for (let i = 0; i < count; i++) {
       const startPositionX = geometry.attributes.startPosition.getX(i);
       const startPositionY = geometry.attributes.startPosition.getY(i);
       const startPositionZ = geometry.attributes.startPosition.getZ(i);
 
+      let positionX = geometry.attributes.position.getX(i);
+      let positionY = geometry.attributes.position.getY(i);
+      let positionZ = geometry.attributes.position.getZ(i);
+
       const endPositionX = geometry.attributes.endPosition.getX(i);
       const endPositionY = geometry.attributes.endPosition.getY(i);
       const endPositionZ = geometry.attributes.endPosition.getZ(i);
 
-      const positionX = startPositionX * (1 - now) + endPositionX * now;
-      const positionY = startPositionY * (1 - now) + endPositionY * now;
-      const positionZ = startPositionZ * (1 - now) + endPositionZ * now;
+      // positionX = /
+
+      positionX = startPositionX * (1 - now) + endPositionX * now;
+      positionY = startPositionY * (1 - now) + endPositionY * now;
+      positionZ = startPositionZ * (1 - now) + endPositionZ * now;
 
       geometry.attributes.position.setXYZ(i, positionX, positionY, positionZ);
       // geometry.attributes.position.setX(i, newX);
     }
     geometry.computeVertexNormals();
     geometry.attributes.position.needsUpdate = true;
+    // geometry.attributes.startPosition.needsUpdate = true;
+    // geometry.attributes.endPosition.needsUpdate = true;
 
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
@@ -165,8 +181,8 @@ window.onload = function () {
   var sl = new ShaderLoader();
   sl.loadShaders(
     {
-      render_fs: "",
-      render_vs: "",
+      "render_fs.frag": "",
+      "render_vs.vert": "",
     },
     "http://localhost:3000/morph/",
     sine_cos_wave_plane
