@@ -1,148 +1,138 @@
 import * as THREE from "three";
+import {OBJLoader} from 'three/examples/jsm/loaders/OBJLoader.js';
+import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js';
+import { BufferAttribute } from "three";
 
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+// setting up the basics
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1500);
 
-class BasicWorldDemo {
-  constructor() {
-    this._Initialize();
+const renderer = new THREE.WebGLRenderer({
+  canvas: document.querySelector('#bg'),
+});
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+camera.position.set(0,0,100);
+controls.update();
+
+const ambientLight = new THREE.AmbientLight( 0x404040 ); // soft white light
+scene.add( ambientLight );
+
+const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+dirLight.position.set(0, 100, 0);
+scene.add(dirLight);
+
+// loading .obj
+function onProgress( xhr ){
+  console.log((xhr.loaded/xhr.total*100) + '% loaded');
+}
+
+function onError( error ){
+  console.log('Error occured.');
+}
+
+const loader = new OBJLoader();
+var geom_1, geom_2, mat, points;
+
+const model_1 = await loader.loadAsync( 'data/bunny.obj', onProgress);
+const model_2 = await loader.loadAsync( 'data/garg.obj', onProgress);
+geom_1 = model_1.children[0].geometry;
+geom_2 = model_2.children[0].geometry;
+
+mat = new THREE.PointsMaterial({color:0xff00ff, size:0.25});
+points = new THREE.Points(geom_1, mat);
+points.scale.set(50, 50, 50);
+scene.add(points);
+
+// basic geometries
+// const geom_1 = new THREE.BoxGeometry(50, 50, 50);
+// // const geom_1 = new THREE.PlaneGeometry(50, 50);
+
+// const mat = new THREE.PointsMaterial({color:0xff00ff, size:1});
+// const points = new THREE.Points(geom_1, mat);
+
+// scene.add(points);
+
+// // const geom_2 = new THREE.BoxGeometry(70, 20, 20);
+// // const geom_2 = new THREE.OctahedronGeometry(50);
+// const geom_2 = new THREE.PlaneGeometry(50, 50);
+
+
+
+// setting variables
+const geom_1_pos = geom_1.getAttribute("position");
+const geom_2_pos = geom_2.getAttribute("position"); 
+var current_pos = new Float32Array(geom_2_pos.count * 3); 
+var translate_vectors = new Float32Array(geom_2_pos.count * 3);
+
+// TODO: make variable translation per timestep: function that calculate rather than fixed matrix?
+// calculate translate vectors per timestep, setting initial position matrix.
+const timestep = 10;
+for(let i = 0; i < translate_vectors.length; i++){
+  translate_vectors[i] = (geom_2_pos.array[i] - geom_1_pos.array[i])/timestep;
+  current_pos[i] = geom_1_pos.array[i];
+}
+
+// TODO: fix this up. HAS TO DO WITH BUFFERGEOMETRY HAVING FIXED SIZE
+// modifying the initial matrix based on differences in number of vertices
+if(geom_1_pos.count > geom_2_pos.count){
+  current_pos = geom_1_pos.array;
+  current_pos = current_pos.slice(0, translate_vectors.length);
+}
+else if(geom_1_pos.count < geom_2_pos.count){
+  for(let i = geom_1_pos.count*3; i < geom_2_pos.count*3; i++)
+    current_pos[i] = 0.0;
+}
+
+
+console.log(translate_vectors)
+console.log(current_pos)
+
+document.addEventListener('keypress', onDocumentKeyDown, false);
+function onDocumentKeyDown(event){
+  if(event.code == 'KeyL'){
+    advanceMoprh();
   }
-
-  _Initialize() {
-    this._threejs = new THREE.WebGLRenderer({
-      antialias: true,
-    });
-    this._threejs.shadowMap.enabled = true;
-    this._threejs.shadowMap.type = THREE.PCFSoftShadowMap;
-    this._threejs.setPixelRatio(window.devicePixelRatio);
-    this._threejs.setSize(window.innerWidth, window.innerHeight);
-
-    document.body.appendChild(this._threejs.domElement);
-
-    window.addEventListener(
-      "resize",
-      () => {
-        this._OnWindowResize();
-      },
-      false
-    );
-
-    const fov = 60;
-    const aspect = 1920 / 1080;
-    const near = 1.0;
-    const far = 1000.0;
-    this._camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-    this._camera.position.set(75, 20, 0);
-
-    this._scene = new THREE.Scene();
-
-    let light = new THREE.DirectionalLight(0xffffff, 1.0);
-    light.position.set(20, 100, 10);
-    light.target.position.set(0, 0, 0);
-    light.castShadow = true;
-    light.shadow.bias = -0.001;
-    light.shadow.mapSize.width = 2048;
-    light.shadow.mapSize.height = 2048;
-    light.shadow.camera.near = 0.1;
-    light.shadow.camera.far = 500.0;
-    light.shadow.camera.near = 0.5;
-    light.shadow.camera.far = 500.0;
-    light.shadow.camera.left = 100;
-    light.shadow.camera.right = -100;
-    light.shadow.camera.top = 100;
-    light.shadow.camera.bottom = -100;
-    this._scene.add(light);
-
-    light = new THREE.AmbientLight(0x101010);
-    this._scene.add(light);
-
-    const controls = new OrbitControls(this._camera, this._threejs.domElement);
-    controls.target.set(0, 20, 0);
-    controls.update();
-
-    // const loader = new THREE.CubeTextureLoader();
-    // const texture = loader.load([
-    //   "./resources/posx.jpg",
-    //   "./resources/negx.jpg",
-    //   "./resources/posy.jpg",
-    //   "./resources/negy.jpg",
-    //   "./resources/posz.jpg",
-    //   "./resources/negz.jpg",
-    // ]);
-    // this._scene.background = texture;
-
-    const plane = new THREE.Mesh(
-      new THREE.PlaneGeometry(100, 100, 10, 10),
-      new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-      })
-    );
-    plane.castShadow = false;
-    plane.receiveShadow = true;
-    plane.rotation.x = -Math.PI / 2;
-    this._scene.add(plane);
-
-    const box = new THREE.Mesh(
-      new THREE.BoxGeometry(2, 2, 2),
-      new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-      })
-    );
-    box.position.set(0, 1, 0);
-    box.castShadow = true;
-    box.receiveShadow = true;
-    this._scene.add(box);
-
-    for (let x = -8; x < 8; x++) {
-      for (let y = -8; y < 8; y++) {
-        const box = new THREE.Mesh(
-          new THREE.BoxGeometry(2, 2, 2),
-          new THREE.MeshStandardMaterial({
-            color: 0x808080,
-          })
-        );
-        box.position.set(
-          Math.random() + x * 5,
-          Math.random() * 4.0 + 2.0,
-          Math.random() + y * 5
-        );
-        box.castShadow = true;
-        box.receiveShadow = true;
-        this._scene.add(box);
-      }
-    }
-
-    // box = new THREE.Mesh(
-    //   new THREE.SphereGeometry(2, 32, 32),
-    //   new THREE.MeshStandardMaterial({
-    //     color: 0xffffff,
-    //     wireframe: true,
-    //     wireframeLinewidth: 4,
-    //   })
-    // );
-    // box.position.set(0, 0, 0);
-    // box.castShadow = true;
-    // box.receiveShadow = true;
-    // this._scene.add(box);
-
-    this._RAF();
-  }
-
-  _OnWindowResize() {
-    this._camera.aspect = window.innerWidth / window.innerHeight;
-    this._camera.updateProjectionMatrix();
-    this._threejs.setSize(window.innerWidth, window.innerHeight);
-  }
-
-  _RAF() {
-    requestAnimationFrame(() => {
-      this._threejs.render(this._scene, this._camera);
-      this._RAF();
-    });
+  else if(event.code == 'KeyJ'){
+    deadvanceMoprh();
   }
 }
 
-let _APP = null;
+var time = 0;
+function advanceMoprh(){
+  while(time < timestep){
+    time++;
+    for(let i = 0; i < translate_vectors.length; i++){
+      current_pos[i] += translate_vectors[i];
+    }
+    geom_1.setAttribute("position", new BufferAttribute(current_pos, 3));
+    console.log(time);
+    break;
+  }
+}
 
-window.addEventListener("DOMContentLoaded", () => {
-  _APP = new BasicWorldDemo();
-});
+function deadvanceMoprh(){
+  while(time > 0){
+    time--;
+    for(let i = 0; i < translate_vectors.length; i++){
+      current_pos[i] -= translate_vectors[i];
+    }
+    // if(time == 0){ // fix the remaining missing points
+    //   for(let i = geom_2_pos.count*3; i < geom_1_pos.count*3; i++)
+    //   current_pos[i] = geom_1_pos.array[i];
+    // }
+    geom_1.setAttribute("position", new BufferAttribute(current_pos, 3));
+    console.log(time);
+    break;
+  }
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  renderer.render(scene, camera);
+}
+animate()
