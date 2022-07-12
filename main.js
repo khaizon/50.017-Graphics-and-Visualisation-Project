@@ -83,6 +83,9 @@ export const sine_cos_wave_plane = async () => {
 
     let points = new Float32Array(count * 3);
 
+    const checkPoint = count / 10;
+    let checkPointCounter = 0;
+
     // const count_added = 0;
     var dir = new THREE.Vector3(1, 1, 1).normalize();
     for (let i = 0; i < count; i++) {
@@ -91,6 +94,12 @@ export const sine_cos_wave_plane = async () => {
       points[i * 3 + 1] = p.y;
       points[i * 3 + 2] = p.z;
       // points.push(p.x, p.y, p.z);
+      if (checkPointCounter < checkPoint) {
+        checkPointCounter++;
+      } else {
+        checkPointCounter = 0;
+        console.log(`${i} points added ${(i / count) * 100}% complete`);
+      }
     }
 
     function setRandomVector(min, max) {
@@ -118,28 +127,15 @@ export const sine_cos_wave_plane = async () => {
     return points;
   }
 
-  let mesh1Vertices = fillWithPoints(geom_1, 1000);
+  let mesh1Vertices = fillWithPoints(geom_1, 10000);
   console.log("first done");
-  let postionVertices = fillWithPoints(geom_1, 1000);
+  let mesh1VerticesClone = new Float32Array(mesh1Vertices.length);
+  for (let i = 0; i < mesh1Vertices.length; i++) {
+    mesh1VerticesClone[i] = mesh1Vertices[i];
+  }
   console.log("second done");
-  let mesh2Vertices = fillWithPoints(geom_2, 1000);
+  let mesh2Vertices = fillWithPoints(geom_2, 10000);
   console.log("third done");
-
-  const generateBoxVertices = (size, vertices) => {
-    const len = vertices * 3;
-    const result = new Float32Array(len);
-    var count = 0;
-    for (let i = 0; i < vertices; i++) {
-      const x = 2 * size * Math.random() - size;
-      const y = 2 * size * Math.random() - size;
-      const z = 2 * size * Math.random() - size;
-      result[count++] = x;
-      result[count++] = y;
-      result[count++] = z;
-    }
-    return result;
-  };
-  const boxVertices = generateBoxVertices(5, 1000);
 
   // itemSize = 3 because there are 3 values (components) per vertex
   geometry.setAttribute(
@@ -148,7 +144,7 @@ export const sine_cos_wave_plane = async () => {
   );
   geometry.setAttribute(
     "position",
-    new THREE.BufferAttribute(postionVertices, 3)
+    new THREE.BufferAttribute(mesh1VerticesClone, 3)
   );
   geometry.setAttribute(
     "endPosition",
