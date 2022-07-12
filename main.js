@@ -1,8 +1,9 @@
 import * as THREE from "three";
+import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { ShaderLoader } from "./ShaderLoader";
 
-export const sine_cos_wave_plane = () => {
+export const sine_cos_wave_plane = async () => {
   // SCENE
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xa8def0);
@@ -53,30 +54,76 @@ export const sine_cos_wave_plane = () => {
   scene.add(dirLight);
   scene.add(new THREE.CameraHelper(dirLight.shadow.camera));
 
+  const loader = new OBJLoader();
+  var geom_1, geom_2, mat, mesh1, mesh2;
+
+  const model_1 = await loader.loadAsync("data/bunny.obj");
+  const model_2 = await loader.loadAsync("data/garg.obj");
+  geom_1 = model_1.children[0].geometry;
+  geom_1.scale(5, 5, 5);
+  geom_2 = model_2.children[0].geometry;
+  geom_2.scale(5, 5, 5);
+  // scene.add(points);
+
   // const geometry = new THREE.PlaneBufferGeometry(30, 30, 30, 30);
   const geometry = new THREE.BufferGeometry();
   // create a simple square shape. We duplicate the top left and bottom right
   // vertices because each vertex needs to appear once per triangle.
-  const generateSphereVertices = (radius, vertices) => {
-    const len = vertices * 3;
-    const result = new Float32Array(len);
-    let count = 0;
-    for (let i = 0; i < vertices; i++) {
-      const x = 2 * radius * Math.random() - radius;
-      const y = 2 * radius * Math.random() - radius;
-      const z = 2 * radius * Math.random() - radius;
-      if (x * x + y * y + z * z > radius * radius) {
-        --i;
-        continue;
-      }
-      result[count++] = x;
-      result[count++] = y;
-      result[count++] = z;
+  function fillWithPoints(geometry, count) {
+    var size = new THREE.Vector3();
+
+    geometry.computeBoundingBox();
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0xff00ff,
+      side: THREE.DoubleSide,
+    });
+    let mesh = new THREE.Mesh(geometry, mat);
+    // mesh = mesh.scale.set(5, 5, 5);
+    let bbox = geometry.boundingBox;
+
+    let points = new Float32Array(count * 3);
+
+    // const count_added = 0;
+    var dir = new THREE.Vector3(1, 1, 1).normalize();
+    for (let i = 0; i < count; i++) {
+      let p = setRandomVector(bbox.min, bbox.max);
+      points[i * 3] = p.x;
+      points[i * 3 + 1] = p.y;
+      points[i * 3 + 2] = p.z;
+      // points.push(p.x, p.y, p.z);
     }
-    return result;
-  };
-  let sphereVertices = generateSphereVertices(5, 1000);
-  let positions = generateSphereVertices(5, 1000);
+
+    function setRandomVector(min, max) {
+      let v = new THREE.Vector3(
+        THREE.MathUtils.randFloat(min.x, max.x),
+        THREE.MathUtils.randFloat(min.y, max.y),
+        THREE.MathUtils.randFloat(min.z, max.z)
+      );
+      if (!isInside(v, mesh)) {
+        return setRandomVector(min, max);
+      }
+      return v;
+    }
+
+    function isInside(v, mesh) {
+      const ray = new THREE.Raycaster(
+        v,
+        new THREE.Vector3(v.x + 1, v.y + 1, v.z + 1)
+      );
+      const intersects = ray.intersectObject(mesh);
+
+      return intersects.length % 2 == 1;
+    }
+
+    return points;
+  }
+
+  let mesh1Vertices = fillWithPoints(geom_1, 1000);
+  console.log("first done");
+  let postionVertices = fillWithPoints(geom_1, 1000);
+  console.log("second done");
+  let mesh2Vertices = fillWithPoints(geom_2, 1000);
+  console.log("third done");
 
   const generateBoxVertices = (size, vertices) => {
     const len = vertices * 3;
@@ -97,20 +144,20 @@ export const sine_cos_wave_plane = () => {
   // itemSize = 3 because there are 3 values (components) per vertex
   geometry.setAttribute(
     "startPosition",
-    new THREE.BufferAttribute(positions, 3)
+    new THREE.BufferAttribute(mesh1Vertices, 3)
   );
   geometry.setAttribute(
     "position",
-    new THREE.BufferAttribute(sphereVertices, 3)
+    new THREE.BufferAttribute(postionVertices, 3)
   );
   geometry.setAttribute(
     "endPosition",
-    new THREE.BufferAttribute(boxVertices, 3)
+    new THREE.BufferAttribute(mesh2Vertices, 3)
   );
 
   const material = new THREE.ShaderMaterial({
     uniforms: {
-      pointSize: { type: "f", value: 2 },
+      pointSize: { type: "f", value: 0.5 },
       alpha: { type: "f", value: 0.5 },
     },
     vertexShader: ShaderLoader.get("render_vs.vert"),
@@ -122,18 +169,38 @@ export const sine_cos_wave_plane = () => {
   const points = new THREE.Points(geometry, material);
   points.receiveShadow = true;
   points.castShadow = true;
-  points.rotation.x = -Math.PI / 2;
-  points.position.z = -30;
+  // points.rotation.x = -Math.PI / 2;
+  points.position.y = 5;
+  points.position.z = -20;
   scene.add(points);
 
   const count = geometry.attributes.position.count;
 
   // ANIMATE
-  let now = 0;
+  document.addEventListener("keypress", onDocumentKeyDown, false);
+  function onDocumentKeyDown(event) {
+    if (event.code == "KeyL") {
+      advanceMoprh();
+    } else if (event.code == "KeyJ") {
+      deadvanceMoprh();
+    }
+  }
+
+  var time = 0;
+  function advanceMoprh() {
+    if (time < 1) time += 0.01;
+    console.log(time);
+  }
+
+  function deadvanceMoprh() {
+    if (time > 0) time -= 0.01;
+    console.log(time);
+  }
   function animate() {
     // SINE WAVE
     // const now = Date.now() / 30000000;
-    if (now < 1) now += 0.01;
+    // if (now < 1) now += 0.0001;
+
     for (let i = 0; i < count; i++) {
       const startPositionX = geometry.attributes.startPosition.getX(i);
       const startPositionY = geometry.attributes.startPosition.getY(i);
@@ -149,9 +216,9 @@ export const sine_cos_wave_plane = () => {
 
       // positionX = /
 
-      positionX = startPositionX * (1 - now) + endPositionX * now;
-      positionY = startPositionY * (1 - now) + endPositionY * now;
-      positionZ = startPositionZ * (1 - now) + endPositionZ * now;
+      positionX = startPositionX * (1 - time) + endPositionX * time;
+      positionY = startPositionY * (1 - time) + endPositionY * time;
+      positionZ = startPositionZ * (1 - time) + endPositionZ * time;
 
       geometry.attributes.position.setXYZ(i, positionX, positionY, positionZ);
       // geometry.attributes.position.setX(i, newX);
