@@ -6,7 +6,7 @@ import { ShaderLoader } from "./ShaderLoader";
 export const sine_cos_wave_plane = async () => {
   // SCENE
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xa8def0);
+  scene.background = new THREE.Color(0x000000);
 
   // CAMERA
   const camera = new THREE.PerspectiveCamera(
@@ -97,7 +97,7 @@ export const sine_cos_wave_plane = async () => {
       if (checkPointCounter < checkPoint) {
         checkPointCounter++;
       } else {
-        checkPointCounter = 0;
+        checkPointCounter = 1;
         console.log(`${i} points added ${(i / count) * 100}% complete`);
       }
     }
@@ -127,14 +127,14 @@ export const sine_cos_wave_plane = async () => {
     return points;
   }
 
-  let mesh1Vertices = fillWithPoints(geom_1, 10000);
+  let mesh1Vertices = fillWithPoints(geom_1, 400);
   console.log("first done");
   let mesh1VerticesClone = new Float32Array(mesh1Vertices.length);
   for (let i = 0; i < mesh1Vertices.length; i++) {
     mesh1VerticesClone[i] = mesh1Vertices[i];
   }
   console.log("second done");
-  let mesh2Vertices = fillWithPoints(geom_2, 10000);
+  let mesh2Vertices = fillWithPoints(geom_2, 400);
   console.log("third done");
 
   // itemSize = 3 because there are 3 values (components) per vertex
@@ -153,7 +153,7 @@ export const sine_cos_wave_plane = async () => {
 
   const material = new THREE.ShaderMaterial({
     uniforms: {
-      pointSize: { type: "f", value: 0.5 },
+      pointSize: { type: "f", value: 1 },
       alpha: { type: "f", value: 0.5 },
     },
     vertexShader: ShaderLoader.get("render_vs.vert"),
@@ -220,6 +220,7 @@ export const sine_cos_wave_plane = async () => {
       // geometry.attributes.position.setX(i, newX);
     }
     geometry.computeVertexNormals();
+    points.rotation.y = time * Math.PI;
     geometry.attributes.position.needsUpdate = true;
     // geometry.attributes.startPosition.needsUpdate = true;
     // geometry.attributes.endPosition.needsUpdate = true;
