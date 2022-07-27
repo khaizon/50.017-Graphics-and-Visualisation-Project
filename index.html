@@ -5,17 +5,31 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Vite App</title>
-  <style>
-    body {
-      margin: 0px;
-    }
-  </style>
 </head>
 
 <body>
-  <!-- <div id="app"></div> -->
+
   <script type="module" src=" /main.js">
   </script>
+
+  <div id='modal'>
+    <div class="container">
+      <div class="h1">Starting Shape</div>
+      <input type="file" id="myFile" size="50" class=" inputfileStarting">
+      <canvas id="c1"></canvas>
+    </div>
+    <div class="container">
+      <div class="h1">Ending Shape</div>
+      <input type="file" id="myFile" size="50" class=" inputfileEnding">
+      <canvas id="c2"></canvas>
+    </div>
+    <div class="containerRow">
+
+      <button id="start" class="start">start</button>
+      <div id="loadingText" class="loading">
+        &#8592Press To Start</div>
+    </div>
+  </div>
 </body>
 
 </html>

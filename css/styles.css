@@ -1,0 +1,44 @@
+
+
+#modal {
+  font-family: 'Noto Sans';
+  font-size: 12px;
+  position:absolute;
+/*   background:url(tint20.png) 0 0 repeat; */
+/*   background:rgba(0,0,0,0.2); */
+  background: #00000081;
+  border-radius:14px;
+  padding:8px;
+/*   display:block; */
+/*   display:none; */
+}
+  body {
+    margin: 0
+  }
+
+.container{
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 5px;
+}
+.containerRow{
+  display: flex;
+  gap: 5px;
+  margin-bottom: 5px;
+}
+
+.h1{
+  font-size: 20px;
+  font-family: 'futura';
+  color: #fff;
+  text-align: left;
+
+}
+
+.loading{
+  font-size: 20px;
+  font-family: 'futura';
+  color: #fff;
+  text-align: left;
+}

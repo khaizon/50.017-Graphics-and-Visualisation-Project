@@ -1,8 +1,10 @@
 import * as THREE from "three";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { GUI } from "dat.gui";
+import styles from "/css/styles.css";
 
-export const particles = async () => {
+export const particles = async (model_1, model_2, NUM_INSTANCES) => {
   // SCENE
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000000);
@@ -17,7 +19,9 @@ export const particles = async () => {
   camera.position.y = 5;
 
   // RENDERER
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+  });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.shadowMap.enabled = true;
@@ -56,25 +60,57 @@ export const particles = async () => {
   const loader = new OBJLoader();
   var geom_1, geom_2, mat, mesh1, mesh2;
 
-  const model_1 = await loader.loadAsync("data/bunny.obj");
-  const model_2 = await loader.loadAsync("data/garg.obj");
-  geom_1 = model_1.children[0].geometry;
+  // const model_1 = await loader.loadAsync("data/bunny.obj");
+  // const model_2 = await loader.loadAsync("data/garg.obj");
+  geom_1 = model_1.children[0].geometry.clone();
   geom_1.scale(5, 5, 5);
-  geom_2 = model_2.children[0].geometry;
+  geom_2 = model_2.children[0].geometry.clone();
   geom_2.scale(5, 5, 5);
-
-  const NUM_INSTANCES = 1000;
 
   const geometry = new THREE.BufferGeometry();
 
-  let mesh1Vertices = fillWithPoints(geom_1, NUM_INSTANCES);
+  const sphereMaterial = {
+    color: 0xff5a,
+    transparent: true,
+    opacity: 0.7,
+    metalness: 0.2,
+    roughness: 0.5,
+  };
+
+  const gui = new GUI();
+  const materialFolder = gui.addFolder("Material");
+  materialFolder
+    .add(sphereMaterial, "opacity", 0, 1)
+    .onChange((value) => updateMaterial(value));
+  materialFolder.addColor(sphereMaterial, "color").onChange(() => {
+    updateMaterial();
+  });
+  materialFolder.add(sphereMaterial, "metalness", 0, 1).onChange(() => {
+    updateMaterial();
+  });
+  materialFolder.add(sphereMaterial, "roughness", 0, 1).onChange(() => {
+    updateMaterial();
+  });
+  materialFolder.open();
+
+  console.log(scene);
+  function updateMaterial() {
+    for (let i = 0; i < NUM_INSTANCES; i++) {
+      scene.children[i + 3].material.opacity = sphereMaterial.opacity;
+      scene.children[i + 3].material.color.set(sphereMaterial.color);
+      scene.children[i + 3].material.metalness = sphereMaterial.metalness;
+      scene.children[i + 3].material.roughness = sphereMaterial.roughness;
+    }
+  }
+
+  let mesh1Vertices = await fillWithPoints(geom_1, NUM_INSTANCES);
   console.log("first done");
   let mesh1VerticesClone = new Float32Array(mesh1Vertices.length);
   for (let i = 0; i < mesh1Vertices.length; i++) {
     mesh1VerticesClone[i] = mesh1Vertices[i];
   }
   console.log("second done");
-  let mesh2Vertices = fillWithPoints(geom_2, NUM_INSTANCES);
+  let mesh2Vertices = await fillWithPoints(geom_2, NUM_INSTANCES);
   console.log("third done");
 
   // itemSize = 3 because there are 3 values (components) per vertex
@@ -100,11 +136,11 @@ export const particles = async () => {
   for (let i = 0; i < NUM_INSTANCES; i++) {
     const geom = new THREE.SphereGeometry(0.1, 20, 20);
     const mat = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      roughness: 0.5,
-      metalness: 0.2,
+      color: sphereMaterial.color,
+      roughness: sphereMaterial.roughness,
+      metalness: sphereMaterial.metalness,
       transparent: true,
-      opacity: 0.7,
+      opacity: sphereMaterial.opacity,
     });
     const sphere = new THREE.Mesh(geom, mat);
 
@@ -193,8 +229,7 @@ export const particles = async () => {
   window.addEventListener("resize", onWindowResize);
 };
 
-// sine_cos_wave_plane();
-function fillWithPoints(geometry, count) {
+async function fillWithPoints(geometry, count) {
   function isInside(v, mesh) {
     const ray = new THREE.Raycaster(
       v,
@@ -242,6 +277,7 @@ function fillWithPoints(geometry, count) {
       checkPointCounter++;
     } else {
       checkPointCounter = 1;
+
       console.log(`${i} points added ${(i / count) * 100}% complete`);
     }
   }
@@ -249,4 +285,83 @@ function fillWithPoints(geometry, count) {
   return points;
 }
 
-particles();
+function getInput(canvasName, inputClassName, models, position) {
+  const canvas = document.querySelector(canvasName);
+  const renderer = new THREE.WebGLRenderer({ canvas });
+
+  const fov = 75;
+  const aspect = 1; // the canvas default
+  const near = 0.1;
+  const far = 5;
+  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+  camera.position.z = 2;
+
+  const scene = new THREE.Scene();
+
+  let loadedObject;
+  let loaded = false;
+  document
+    .querySelector(inputClassName)
+    .addEventListener("change", function (e) {
+      var file = e.currentTarget.files[0];
+
+      const url = URL.createObjectURL(file);
+
+      const objLoader = new OBJLoader();
+
+      objLoader.load(url, function (object) {
+        loadedObject = object;
+        loaded = true;
+        console.log(object);
+        scene.add(object);
+        const position =
+          inputClassName === ".inputfileStarting"
+            ? "startPosition"
+            : "endPosition";
+        console.log(position);
+        models.push(object);
+        positions.push(position);
+        renderer.render(scene, camera);
+      });
+    });
+  {
+    const color = 0xffffff;
+    const intensity = 1;
+    const light = new THREE.DirectionalLight(color, intensity);
+    light.position.set(-1, 2, 4);
+    scene.add(light);
+  }
+
+  function render(time) {
+    time *= 0.001; // convert time to seconds
+
+    if (loaded) {
+      loadedObject.rotateY(0.005);
+    }
+
+    renderer.render(scene, camera);
+    renderer.setSize(100, 100);
+
+    requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
+}
+
+const models = [];
+const positions = [];
+
+getInput("#c1", ".inputfileStarting", models);
+getInput("#c2", ".inputfileEnding", models);
+
+function maybeStart() {
+  if (models.length === 2) {
+    console.log(models);
+    if (positions[0] === "startPosition") {
+      particles(models[0], models[1], 1000);
+    } else {
+      particles(models[1], models[0], 1000);
+    }
+  }
+}
+
+document.querySelector(".start").addEventListener("click", maybeStart);
