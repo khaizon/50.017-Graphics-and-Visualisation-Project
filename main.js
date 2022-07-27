@@ -1,9 +1,8 @@
 import * as THREE from "three";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { ShaderLoader } from "./ShaderLoader";
 
-export const sine_cos_wave_plane = async () => {
+export const particles = async () => {
   // SCENE
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000000);
@@ -65,12 +64,8 @@ export const sine_cos_wave_plane = async () => {
   geom_2.scale(5, 5, 5);
 
   const NUM_INSTANCES = 1000;
-  // scene.add(points);
 
-  // const geometry = new THREE.PlaneBufferGeometry(30, 30, 30, 30);
   const geometry = new THREE.BufferGeometry();
-  // create a simple square shape. We duplicate the top left and bottom right
-  // vertices because each vertex needs to appear once per triangle.
 
   let mesh1Vertices = fillWithPoints(geom_1, NUM_INSTANCES);
   console.log("first done");
@@ -95,25 +90,6 @@ export const sine_cos_wave_plane = async () => {
     "endPosition",
     new THREE.BufferAttribute(mesh2Vertices, 3)
   );
-
-  // const material = new THREE.ShaderMaterial({
-  //   uniforms: {
-  //     pointSize: { type: "f", value: 1 },
-  //     alpha: { type: "f", value: 0.5 },
-  //   },
-  //   vertexShader: ShaderLoader.get("render_vs.vert"),
-  //   fragmentShader: ShaderLoader.get("render_fs.frag"),
-  //   transparent: true,
-  //   blending: THREE.AdditiveBlending,
-  // });
-
-  // const points = new THREE.Points(geometry, material);
-  // points.receiveShadow = true;
-  // points.castShadow = true;
-  // // points.rotation.x = -Math.PI / 2;
-  // points.position.y = 5;
-  // points.position.z = -20;
-  // scene.add(points);
 
   const offset = new THREE.Vector3(0, 5, -30);
 
@@ -194,10 +170,9 @@ export const sine_cos_wave_plane = async () => {
         .add(offset);
 
       geometry.attributes.position.setXYZ(i, positionX, positionY, positionZ);
-      // geometry.attributes.position.setX(i, newX);
     }
+
     geometry.computeVertexNormals();
-    // geometry.rotateY(0.01);
     geometry.attributes.position.needsUpdate = true;
     geometry.attributes.startPosition.needsUpdate = true;
     geometry.attributes.endPosition.needsUpdate = true;
@@ -216,18 +191,6 @@ export const sine_cos_wave_plane = async () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
   }
   window.addEventListener("resize", onWindowResize);
-};
-
-window.onload = function () {
-  var sl = new ShaderLoader();
-  sl.loadShaders(
-    {
-      "render_fs.frag": "",
-      "render_vs.vert": "",
-    },
-    "http://localhost:3000/morph/",
-    sine_cos_wave_plane
-  );
 };
 
 // sine_cos_wave_plane();
@@ -252,8 +215,6 @@ function fillWithPoints(geometry, count) {
     }
     return v;
   }
-
-  var size = new THREE.Vector3();
 
   geometry.computeBoundingBox();
   const mat = new THREE.MeshBasicMaterial({
@@ -287,3 +248,5 @@ function fillWithPoints(geometry, count) {
 
   return points;
 }
+
+particles();
