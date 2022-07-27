@@ -63,78 +63,23 @@ export const sine_cos_wave_plane = async () => {
   geom_1.scale(5, 5, 5);
   geom_2 = model_2.children[0].geometry;
   geom_2.scale(5, 5, 5);
+
+  const NUM_INSTANCES = 1000;
   // scene.add(points);
 
   // const geometry = new THREE.PlaneBufferGeometry(30, 30, 30, 30);
   const geometry = new THREE.BufferGeometry();
   // create a simple square shape. We duplicate the top left and bottom right
   // vertices because each vertex needs to appear once per triangle.
-  function fillWithPoints(geometry, count) {
-    var size = new THREE.Vector3();
 
-    geometry.computeBoundingBox();
-    const mat = new THREE.MeshBasicMaterial({
-      color: 0xff00ff,
-      side: THREE.DoubleSide,
-    });
-    let mesh = new THREE.Mesh(geometry, mat);
-    // mesh = mesh.scale.set(5, 5, 5);
-    let bbox = geometry.boundingBox;
-
-    let points = new Float32Array(count * 3);
-
-    const checkPoint = count / 10;
-    let checkPointCounter = 0;
-
-    // const count_added = 0;
-    var dir = new THREE.Vector3(1, 1, 1).normalize();
-    for (let i = 0; i < count; i++) {
-      let p = setRandomVector(bbox.min, bbox.max);
-      points[i * 3] = p.x;
-      points[i * 3 + 1] = p.y;
-      points[i * 3 + 2] = p.z;
-      // points.push(p.x, p.y, p.z);
-      if (checkPointCounter < checkPoint) {
-        checkPointCounter++;
-      } else {
-        checkPointCounter = 1;
-        console.log(`${i} points added ${(i / count) * 100}% complete`);
-      }
-    }
-
-    function setRandomVector(min, max) {
-      let v = new THREE.Vector3(
-        THREE.MathUtils.randFloat(min.x, max.x),
-        THREE.MathUtils.randFloat(min.y, max.y),
-        THREE.MathUtils.randFloat(min.z, max.z)
-      );
-      if (!isInside(v, mesh)) {
-        return setRandomVector(min, max);
-      }
-      return v;
-    }
-
-    function isInside(v, mesh) {
-      const ray = new THREE.Raycaster(
-        v,
-        new THREE.Vector3(v.x + 1, v.y + 1, v.z + 1)
-      );
-      const intersects = ray.intersectObject(mesh);
-
-      return intersects.length % 2 == 1;
-    }
-
-    return points;
-  }
-
-  let mesh1Vertices = fillWithPoints(geom_1, 400);
+  let mesh1Vertices = fillWithPoints(geom_1, NUM_INSTANCES);
   console.log("first done");
   let mesh1VerticesClone = new Float32Array(mesh1Vertices.length);
   for (let i = 0; i < mesh1Vertices.length; i++) {
     mesh1VerticesClone[i] = mesh1Vertices[i];
   }
   console.log("second done");
-  let mesh2Vertices = fillWithPoints(geom_2, 400);
+  let mesh2Vertices = fillWithPoints(geom_2, NUM_INSTANCES);
   console.log("third done");
 
   // itemSize = 3 because there are 3 values (components) per vertex
@@ -151,26 +96,55 @@ export const sine_cos_wave_plane = async () => {
     new THREE.BufferAttribute(mesh2Vertices, 3)
   );
 
-  const material = new THREE.ShaderMaterial({
-    uniforms: {
-      pointSize: { type: "f", value: 1 },
-      alpha: { type: "f", value: 0.5 },
-    },
-    vertexShader: ShaderLoader.get("render_vs.vert"),
-    fragmentShader: ShaderLoader.get("render_fs.frag"),
-    transparent: true,
-    blending: THREE.AdditiveBlending,
-  });
+  // const material = new THREE.ShaderMaterial({
+  //   uniforms: {
+  //     pointSize: { type: "f", value: 1 },
+  //     alpha: { type: "f", value: 0.5 },
+  //   },
+  //   vertexShader: ShaderLoader.get("render_vs.vert"),
+  //   fragmentShader: ShaderLoader.get("render_fs.frag"),
+  //   transparent: true,
+  //   blending: THREE.AdditiveBlending,
+  // });
 
-  const points = new THREE.Points(geometry, material);
-  points.receiveShadow = true;
-  points.castShadow = true;
-  // points.rotation.x = -Math.PI / 2;
-  points.position.y = 5;
-  points.position.z = -20;
-  scene.add(points);
+  // const points = new THREE.Points(geometry, material);
+  // points.receiveShadow = true;
+  // points.castShadow = true;
+  // // points.rotation.x = -Math.PI / 2;
+  // points.position.y = 5;
+  // points.position.z = -20;
+  // scene.add(points);
 
-  const count = geometry.attributes.position.count;
+  const offset = new THREE.Vector3(0, 5, -30);
+
+  geometry.rotateY(Math.PI);
+
+  const sphereCheckPoint = NUM_INSTANCES / 10;
+  let sphereCheckPointCounter = 0;
+  for (let i = 0; i < NUM_INSTANCES; i++) {
+    const geom = new THREE.SphereGeometry(0.1, 20, 20);
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.5,
+      metalness: 0.2,
+      transparent: true,
+      opacity: 0.7,
+    });
+    const sphere = new THREE.Mesh(geom, mat);
+
+    sphere.castShadow = true;
+    sphere.receiveShadow = true;
+
+    scene.add(sphere);
+
+    if (sphereCheckPointCounter < sphereCheckPoint) {
+      sphereCheckPointCounter++;
+    } else {
+      sphereCheckPointCounter = 1;
+
+      console.log(`${i} spheres added ${(i / NUM_INSTANCES) * 100}% complete`);
+    }
+  }
 
   // ANIMATE
   document.addEventListener("keypress", onDocumentKeyDown, false);
@@ -192,12 +166,12 @@ export const sine_cos_wave_plane = async () => {
     if (time > 0) time -= 0.01;
     console.log(time);
   }
-  function animate() {
-    // SINE WAVE
-    // const now = Date.now() / 30000000;
-    // if (now < 1) now += 0.0001;
 
-    for (let i = 0; i < count; i++) {
+  function animate() {
+    const rotationM = new THREE.Matrix4();
+    rotationM.makeRotationY(time * Math.PI);
+
+    for (let i = 0; i < NUM_INSTANCES; i++) {
       const startPositionX = geometry.attributes.startPosition.getX(i);
       const startPositionY = geometry.attributes.startPosition.getY(i);
       const startPositionZ = geometry.attributes.startPosition.getZ(i);
@@ -210,20 +184,23 @@ export const sine_cos_wave_plane = async () => {
       const endPositionY = geometry.attributes.endPosition.getY(i);
       const endPositionZ = geometry.attributes.endPosition.getZ(i);
 
-      // positionX = /
-
       positionX = startPositionX * (1 - time) + endPositionX * time;
       positionY = startPositionY * (1 - time) + endPositionY * time;
       positionZ = startPositionZ * (1 - time) + endPositionZ * time;
+
+      scene.children[i + 3].position
+        .set(positionX, positionY, positionZ)
+        .applyMatrix4(rotationM)
+        .add(offset);
 
       geometry.attributes.position.setXYZ(i, positionX, positionY, positionZ);
       // geometry.attributes.position.setX(i, newX);
     }
     geometry.computeVertexNormals();
-    points.rotation.y = time * Math.PI;
+    // geometry.rotateY(0.01);
     geometry.attributes.position.needsUpdate = true;
-    // geometry.attributes.startPosition.needsUpdate = true;
-    // geometry.attributes.endPosition.needsUpdate = true;
+    geometry.attributes.startPosition.needsUpdate = true;
+    geometry.attributes.endPosition.needsUpdate = true;
 
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
@@ -254,3 +231,59 @@ window.onload = function () {
 };
 
 // sine_cos_wave_plane();
+function fillWithPoints(geometry, count) {
+  function isInside(v, mesh) {
+    const ray = new THREE.Raycaster(
+      v,
+      new THREE.Vector3(v.x + 1, v.y + 1, v.z + 1)
+    );
+    const intersects = ray.intersectObject(mesh);
+
+    return intersects.length % 2 == 1;
+  }
+  function setRandomVector(min, max) {
+    let v = new THREE.Vector3(
+      THREE.MathUtils.randFloat(min.x, max.x),
+      THREE.MathUtils.randFloat(min.y, max.y),
+      THREE.MathUtils.randFloat(min.z, max.z)
+    );
+    if (!isInside(v, mesh)) {
+      return setRandomVector(min, max);
+    }
+    return v;
+  }
+
+  var size = new THREE.Vector3();
+
+  geometry.computeBoundingBox();
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0xff00ff,
+    side: THREE.DoubleSide,
+  });
+  let mesh = new THREE.Mesh(geometry, mat);
+  // mesh = mesh.scale.set(5, 5, 5);
+  let bbox = geometry.boundingBox;
+
+  let points = new Float32Array(count * 3);
+
+  const checkPoint = count / 10;
+  let checkPointCounter = 0;
+
+  // const count_added = 0;
+  var dir = new THREE.Vector3(1, 1, 1).normalize();
+  for (let i = 0; i < count; i++) {
+    let p = setRandomVector(bbox.min, bbox.max);
+    points[i * 3] = p.x;
+    points[i * 3 + 1] = p.y;
+    points[i * 3 + 2] = p.z;
+    // points.push(p.x, p.y, p.z);
+    if (checkPointCounter < checkPoint) {
+      checkPointCounter++;
+    } else {
+      checkPointCounter = 1;
+      console.log(`${i} points added ${(i / count) * 100}% complete`);
+    }
+  }
+
+  return points;
+}
