@@ -3,9 +3,9 @@ import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GUI } from "dat.gui";
 import styles from "/css/styles.css";
-import { fillWithPoints, unitize } from "./utils";
+import { fillWithPoints, unitize, getVolume } from "./utils";
 
-export const particles = async (model_1, model_2, NUM_INSTANCES) => {
+export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   // SCENE
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000000);
@@ -60,16 +60,6 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
   scene.add(dirLight);
   scene.add(new THREE.CameraHelper(dirLight.shadow.camera));
 
-  const loader = new OBJLoader();
-  var geom_1, geom_2;
-
-  // const model_1 = await loader.loadAsync("data/bunny.obj");
-  // const model_2 = await loader.loadAsync("data/garg.obj");
-  geom_1 = model_1.children[0].children[0].geometry.clone();
-  geom_1.scale(5, 5, 5);
-  geom_2 = model_2.children[0].children[0].geometry.clone();
-  geom_2.scale(5, 5, 5);
-
   const geometry = new THREE.BufferGeometry();
 
   const sphereMaterial = {
@@ -80,59 +70,80 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
     roughness: 0.5,
   };
 
-  // ============= DEFINE MATERIALS GUI ================== //
-  const gui = new GUI();
-  const materialFolder = gui.addFolder("Material");
-  materialFolder
-    .add(sphereMaterial, "opacity", 0, 1)
-    .onChange((value) => updateMaterial(value));
-  materialFolder.addColor(sphereMaterial, "color").onChange(() => {
-    updateMaterial();
-  });
-  materialFolder.add(sphereMaterial, "metalness", 0, 1).onChange(() => {
-    updateMaterial();
-  });
-  materialFolder.add(sphereMaterial, "roughness", 0, 1).onChange(() => {
-    updateMaterial();
-  });
-  materialFolder.open();
-
-  console.log(scene);
-  function updateMaterial() {
-    for (let i = 0; i < NUM_INSTANCES * 2; i++) {
-      scene.children[i + 3].material.opacity = sphereMaterial.opacity;
-      scene.children[i + 3].material.color.set(sphereMaterial.color);
-      scene.children[i + 3].material.metalness = sphereMaterial.metalness;
-      scene.children[i + 3].material.roughness = sphereMaterial.roughness;
-    }
-  }
-  // =============== END DEFINE MATERIALS GUI ================== //
-
   // =================== CALCULATE POSITIONS ================== //
-  const withClone = new Float32Array(NUM_INSTANCES * 2 * 3);
-  let mesh1Vertices = await fillWithPoints(geom_1, NUM_INSTANCES);
+  var startingGeometry, endingGeometry;
+
+  startingGeometry = startingModel.children[0].children[0].geometry.clone();
+  startingGeometry.scale(5, 5, 5);
+  endingGeometry = endingModel.children[0].children[0].geometry.clone();
+  endingGeometry.scale(5, 5, 5);
+
+  // compute the number of points that should exist in the bounding box
+  // assuming if we want NUM_INSTANCES points in the Mesh, the number
+  // of points in the bounding box is volume_of_box / volume_of_mesh
+  const endingGeometryVolume = getVolume(endingGeometry);
+  endingGeometry.computeBoundingBox();
+  const endingGeometryBoundingBoxVolume =
+    (endingGeometry.boundingBox.max.x - endingGeometry.boundingBox.min.x) *
+    (endingGeometry.boundingBox.max.y - endingGeometry.boundingBox.min.y) *
+    (endingGeometry.boundingBox.max.z - endingGeometry.boundingBox.min.z);
+  const numberOfEndingVertices = Math.ceil(
+    (endingGeometryBoundingBoxVolume / endingGeometryVolume) * NUM_INSTANCES
+  );
+  console.log("ending", numberOfEndingVertices);
+
+  // const withClone = new Float32Array(NUM_INSTANCES * 2 * 3);
+  let mesh1Vertices = await fillWithPoints(
+    startingGeometry,
+    numberOfEndingVertices
+  ).then((data) => {
+    return data[0];
+  });
   console.log("first done");
-  let mesh1VerticesClone = new Float32Array(NUM_INSTANCES * 2 * 3);
-  for (let i = 0; i < withClone.length; i++) {
-    if (i > mesh1Vertices.length - 1) {
+
+  let mesh1VerticesClone = new Float32Array(numberOfEndingVertices * 3);
+  for (let i = 0; i < numberOfEndingVertices * 3; i++) {
+    if (i > numberOfEndingVertices * 3 - 1) {
       mesh1VerticesClone[i] = mesh1Vertices[i - mesh1Vertices.length];
-      withClone[i] = mesh1Vertices[i - mesh1Vertices.length];
+      // withClone[i] = mesh1Vertices[i - mesh1Vertices.length];
       continue;
     }
-    withClone[i] = mesh1Vertices[i];
+    // withClone[i] = mesh1Vertices[i];
     mesh1VerticesClone[i] = mesh1Vertices[i];
   }
 
   console.log("second done");
-  let mesh2Vertices = await fillWithPoints(geom_2, 2 * NUM_INSTANCES);
+  let mesh2Vertices = new Float32Array(numberOfEndingVertices * 3);
+  let mesh2VerticesPart2 = new Float32Array(numberOfEndingVertices * 3);
+  let mesh2VerticesWithExtra = await fillWithPoints(
+    endingGeometry,
+    NUM_INSTANCES
+  );
+  const extraVertices = mesh2VerticesWithExtra[1];
+  mesh2Vertices.set(mesh2VerticesWithExtra[0]);
+  mesh2VerticesPart2.set(mesh2VerticesWithExtra[0]);
+  for (let i = 0; i < numberOfEndingVertices * 3 - NUM_INSTANCES; i++) {
+    if (i > extraVertices.length - 1) {
+      mesh2Vertices[NUM_INSTANCES * 3 + i] =
+        extraVertices[i - extraVertices.length];
+      continue;
+    }
+    mesh2Vertices[NUM_INSTANCES * 3 + i] = extraVertices[i];
+    mesh2VerticesPart2[NUM_INSTANCES * 3 + i] = extraVertices[i] + 30;
+  }
   console.log("third done");
+  for (let i = 0; i < numberOfEndingVertices * 3; i++) {
+    if (mesh2VerticesPart2[i] === 0) {
+      console.log("empty at", i);
+    }
+  }
   // ======================================================= //
 
   // ================ STORE POSITIONS IN ARRAY ============== //
   // itemSize = 3 because there are 3 values (components) per vertex
   geometry.setAttribute(
     "startPosition",
-    new THREE.BufferAttribute(withClone, 3)
+    new THREE.BufferAttribute(mesh1Vertices, 3)
   );
   geometry.setAttribute(
     "position",
@@ -142,6 +153,10 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
     "endPosition",
     new THREE.BufferAttribute(mesh2Vertices, 3)
   );
+  geometry.setAttribute(
+    "endPosition2",
+    new THREE.BufferAttribute(mesh2VerticesPart2, 3)
+  );
   // ========================================================= //
 
   const offset = new THREE.Vector3(0, 3, -30);
@@ -149,9 +164,9 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
   geometry.rotateY(Math.PI);
 
   // =================== INSTANTIATE SPHERE ============= //
-  const sphereCheckPoint = NUM_INSTANCES / 10;
+  const sphereCheckPoint = numberOfEndingVertices / 10;
   let sphereCheckPointCounter = 0;
-  for (let i = 0; i < 2 * NUM_INSTANCES; i++) {
+  for (let i = 0; i < 2 * numberOfEndingVertices; i++) {
     const geom = new THREE.SphereGeometry(0.1, 20, 20);
     const mat = new THREE.MeshStandardMaterial({
       color: sphereMaterial.color,
@@ -177,6 +192,33 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
   }
   // ================== END OF SPHERE ================== //
 
+  // ============= DEFINE MATERIALS GUI ================== //
+  const gui = new GUI();
+  const materialFolder = gui.addFolder("Material");
+  materialFolder
+    .add(sphereMaterial, "opacity", 0, 1)
+    .onChange((value) => updateMaterial(value));
+  materialFolder.addColor(sphereMaterial, "color").onChange(() => {
+    updateMaterial();
+  });
+  materialFolder.add(sphereMaterial, "metalness", 0, 1).onChange(() => {
+    updateMaterial();
+  });
+  materialFolder.add(sphereMaterial, "roughness", 0, 1).onChange(() => {
+    updateMaterial();
+  });
+  materialFolder.open();
+
+  console.log(scene);
+  function updateMaterial() {
+    for (let i = 0; i < NUM_INSTANCES; i++) {
+      scene.children[i + 3].material.opacity = sphereMaterial.opacity;
+      scene.children[i + 3].material.color.set(sphereMaterial.color);
+      scene.children[i + 3].material.metalness = sphereMaterial.metalness;
+      scene.children[i + 3].material.roughness = sphereMaterial.roughness;
+    }
+  }
+  // =============== END DEFINE MATERIALS GUI ================== //
   // ANIMATE
   document.addEventListener("keypress", onDocumentKeyDown, false);
   function onDocumentKeyDown(event) {
@@ -184,10 +226,15 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
       advanceMoprh();
     } else if (event.code == "KeyJ") {
       deadvanceMoprh();
+    } else if (event.code == "KeyK") {
+      advanceMoprhPart2();
+    } else if (event.code == "KeyI") {
+      deadvanceMoprhPart2();
     }
   }
 
   var time = 0;
+  var time2 = 0;
   function advanceMoprh() {
     if (time < 1) time += 0.01;
     console.log(time);
@@ -198,11 +245,21 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
     console.log(time);
   }
 
+  function advanceMoprhPart2() {
+    if (time2 < 1) time2 += 0.01;
+    console.log(time2);
+  }
+
+  function deadvanceMoprhPart2() {
+    if (time2 > 0) time2 -= 0.01;
+    console.log(time2);
+  }
+
   function animate() {
     const rotationM = new THREE.Matrix4();
     rotationM.makeRotationY(time * Math.PI);
 
-    for (let i = 0; i < 2 * NUM_INSTANCES; i++) {
+    for (let i = 0; i < 2 * numberOfEndingVertices; i++) {
       const startPositionX = geometry.attributes.startPosition.getX(i);
       const startPositionY = geometry.attributes.startPosition.getY(i);
       const startPositionZ = geometry.attributes.startPosition.getZ(i);
@@ -215,9 +272,19 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
       const endPositionY = geometry.attributes.endPosition.getY(i);
       const endPositionZ = geometry.attributes.endPosition.getZ(i);
 
-      positionX = startPositionX * (1 - time) + endPositionX * time;
-      positionY = startPositionY * (1 - time) + endPositionY * time;
-      positionZ = startPositionZ * (1 - time) + endPositionZ * time;
+      const endPositionPart2X = geometry.attributes.endPosition2.getX(i);
+      const endPositionPart2Y = geometry.attributes.endPosition2.getY(i);
+      const endPositionPart2Z = geometry.attributes.endPosition2.getZ(i);
+
+      positionX =
+        (startPositionX * (1 - time) + endPositionX * time) * (1 - time2) +
+        endPositionPart2X * time2;
+      positionY =
+        (startPositionY * (1 - time) + endPositionY * time) * (1 - time2) +
+        endPositionPart2Y * time2;
+      positionZ =
+        (startPositionZ * (1 - time) + endPositionZ * time) * (1 - time2) +
+        endPositionPart2Z * time2;
 
       scene.children[i + 3].position
         .set(positionX, positionY, positionZ)
@@ -320,9 +387,9 @@ getInput("#c2", ".inputfileEnding", models);
 function maybeStart() {
   if (models.length === 2) {
     if (positions[0] === "startPosition") {
-      particles(models[0], models[1], 50);
+      particles(models[0], models[1], 500);
     } else {
-      particles(models[1], models[0], 50);
+      particles(models[1], models[0], 500);
     }
   }
 }

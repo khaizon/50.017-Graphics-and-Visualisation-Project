@@ -2,6 +2,7 @@ import * as THREE from "three";
 
 export async function fillWithPoints(geometry, count) {
   geometry.computeBoundingBox();
+
   const mat = new THREE.MeshBasicMaterial({
     color: 0xff00ff,
     side: THREE.DoubleSide,
@@ -11,6 +12,7 @@ export async function fillWithPoints(geometry, count) {
   let bbox = geometry.boundingBox;
 
   let points = new Float32Array(count * 3);
+  const extra = [];
 
   const checkPoint = count / 10;
   let checkPointCounter = 0;
@@ -19,9 +21,16 @@ export async function fillWithPoints(geometry, count) {
   var dir = new THREE.Vector3(1, 1, 1).normalize();
   for (let i = 0; i < count; i++) {
     let p = setRandomVector(bbox.min, bbox.max, mesh);
-    points[i * 3] = p.x;
-    points[i * 3 + 1] = p.y;
-    points[i * 3 + 2] = p.z;
+
+    if (p.inside) {
+      points[i * 3] = p.vector.x;
+      points[i * 3 + 1] = p.vector.y;
+      points[i * 3 + 2] = p.vector.z;
+    } else {
+      extra.push(...[p.vector.x, p.vector.y, p.vector.z]);
+      i--;
+      continue;
+    }
 
     // purely for progress tracking
     if (checkPointCounter < checkPoint) {
@@ -32,7 +41,11 @@ export async function fillWithPoints(geometry, count) {
     }
   }
 
-  return points;
+  const result = new Float32Array(points.length + extra.length);
+  result.set(points);
+  result.set(extra, points.length);
+
+  return [points, extra];
 }
 
 function isInside(v, mesh) {
@@ -51,10 +64,14 @@ function setRandomVector(min, max, mesh) {
     THREE.MathUtils.randFloat(min.y, max.y),
     THREE.MathUtils.randFloat(min.z, max.z)
   );
-  if (!isInside(v, mesh)) {
-    return setRandomVector(min, max, mesh);
-  }
-  return v;
+  return {
+    inside: isInside(v, mesh),
+    vector: v,
+  };
+  //   if (!isInside(v, mesh)) {
+  //     return setRandomVector(min, max, mesh);
+  //   }
+  //   return v;
 }
 
 // function to normalize the size of object
@@ -82,4 +99,40 @@ export function unitize(object, targetSize) {
   );
 
   return theObject;
+}
+
+export function getVolume(geometry) {
+  if (!geometry.isBufferGeometry) {
+    console.log("'geometry' must be an indexed or non-indexed buffer geometry");
+    return 0;
+  }
+  var isIndexed = geometry.index !== null;
+  let position = geometry.attributes.position;
+  let sum = 0;
+  let p1 = new THREE.Vector3(),
+    p2 = new THREE.Vector3(),
+    p3 = new THREE.Vector3();
+  if (!isIndexed) {
+    let faces = position.count / 3;
+    for (let i = 0; i < faces; i++) {
+      p1.fromBufferAttribute(position, i * 3 + 0);
+      p2.fromBufferAttribute(position, i * 3 + 1);
+      p3.fromBufferAttribute(position, i * 3 + 2);
+      sum += signedVolumeOfTriangle(p1, p2, p3);
+    }
+  } else {
+    let index = geometry.index;
+    let faces = index.count / 3;
+    for (let i = 0; i < faces; i++) {
+      p1.fromBufferAttribute(position, index.array[i * 3 + 0]);
+      p2.fromBufferAttribute(position, index.array[i * 3 + 1]);
+      p3.fromBufferAttribute(position, index.array[i * 3 + 2]);
+      sum += signedVolumeOfTriangle(p1, p2, p3);
+    }
+  }
+  return sum;
+}
+
+function signedVolumeOfTriangle(p1, p2, p3) {
+  return p1.dot(p2.cross(p3)) / 6.0;
 }
