@@ -17,6 +17,8 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
     1000
   );
   camera.position.y = 5;
+  camera.position.x = 5;
+  camera.lookAt(0, 0, 0);
 
   // RENDERER
   const renderer = new THREE.WebGLRenderer({
@@ -384,8 +386,9 @@ function unitize(object, targetSize) {
   var scaleSet = targetSize / objSize;
 
   var theObject = new THREE.Object3D();
+  object.children[0].geometry.scale(scaleSet, scaleSet, scaleSet);
   theObject.add(object);
-  object.scale.set(scaleSet, scaleSet, scaleSet);
+  // object.scale.set(scaleSet, scaleSet, scaleSet);
   object.position.set(
     -center.x * scaleSet,
     -center.y * scaleSet,
