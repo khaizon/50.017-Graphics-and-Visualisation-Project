@@ -3,6 +3,7 @@ import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GUI } from "dat.gui";
 import styles from "/css/styles.css";
+import { fillWithPoints, unitize } from "./utils";
 
 export const particles = async (model_1, model_2, NUM_INSTANCES) => {
   // SCENE
@@ -67,7 +68,7 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
   geom_1 = model_1.children[0].children[0].geometry.clone();
   geom_1.scale(5, 5, 5);
   geom_2 = model_2.children[0].children[0].geometry.clone();
-  geom_2.scale(10, 10, 10);
+  geom_2.scale(5, 5, 5);
 
   const geometry = new THREE.BufferGeometry();
 
@@ -121,10 +122,9 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
     withClone[i] = mesh1Vertices[i];
     mesh1VerticesClone[i] = mesh1Vertices[i];
   }
-  console.log(withClone);
+
   console.log("second done");
   let mesh2Vertices = await fillWithPoints(geom_2, 2 * NUM_INSTANCES);
-  console.log(mesh2Vertices);
   console.log("third done");
   // ======================================================= //
 
@@ -248,62 +248,6 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
   window.addEventListener("resize", onWindowResize);
 };
 
-async function fillWithPoints(geometry, count) {
-  function isInside(v, mesh) {
-    const ray = new THREE.Raycaster(
-      v,
-      new THREE.Vector3(v.x + 1, v.y + 1, v.z + 1)
-    );
-    const intersects = ray.intersectObject(mesh);
-
-    return intersects.length % 2 == 1;
-  }
-  function setRandomVector(min, max) {
-    let v = new THREE.Vector3(
-      THREE.MathUtils.randFloat(min.x, max.x),
-      THREE.MathUtils.randFloat(min.y, max.y),
-      THREE.MathUtils.randFloat(min.z, max.z)
-    );
-    if (!isInside(v, mesh)) {
-      return setRandomVector(min, max);
-    }
-    return v;
-  }
-
-  geometry.computeBoundingBox();
-  const mat = new THREE.MeshBasicMaterial({
-    color: 0xff00ff,
-    side: THREE.DoubleSide,
-  });
-  let mesh = new THREE.Mesh(geometry, mat);
-  // mesh = mesh.scale.set(5, 5, 5);
-  let bbox = geometry.boundingBox;
-
-  let points = new Float32Array(count * 3);
-
-  const checkPoint = count / 10;
-  let checkPointCounter = 0;
-
-  // const count_added = 0;
-  var dir = new THREE.Vector3(1, 1, 1).normalize();
-  for (let i = 0; i < count; i++) {
-    let p = setRandomVector(bbox.min, bbox.max);
-    points[i * 3] = p.x;
-    points[i * 3 + 1] = p.y;
-    points[i * 3 + 2] = p.z;
-    // points.push(p.x, p.y, p.z);
-    if (checkPointCounter < checkPoint) {
-      checkPointCounter++;
-    } else {
-      checkPointCounter = 1;
-
-      console.log(`${i} points added ${(i / count) * 100}% complete`);
-    }
-  }
-
-  return points;
-}
-
 function getInput(canvasName, inputClassName, models) {
   const canvas = document.querySelector(canvasName);
   const renderer = new THREE.WebGLRenderer({ canvas });
@@ -372,39 +316,13 @@ const positions = [];
 
 getInput("#c1", ".inputfileStarting", models);
 getInput("#c2", ".inputfileEnding", models);
-function unitize(object, targetSize) {
-  // find bounding box of 'object'
-  var box3 = new THREE.Box3();
-  box3.setFromObject(object);
-  var size = new THREE.Vector3();
-  size.subVectors(box3.max, box3.min);
-  var center = new THREE.Vector3();
-  center.addVectors(box3.max, box3.min).multiplyScalar(0.5);
-
-  // uniform scaling according to objSize
-  var objSize = Math.max(size.x, size.y, size.z);
-  var scaleSet = targetSize / objSize;
-
-  var theObject = new THREE.Object3D();
-  object.children[0].geometry.scale(scaleSet, scaleSet, scaleSet);
-  theObject.add(object);
-  // object.scale.set(scaleSet, scaleSet, scaleSet);
-  object.position.set(
-    -center.x * scaleSet,
-    -center.y * scaleSet,
-    -center.z * scaleSet
-  );
-
-  return theObject;
-}
 
 function maybeStart() {
   if (models.length === 2) {
-    console.log(models);
     if (positions[0] === "startPosition") {
-      particles(models[0], models[1], 1000);
+      particles(models[0], models[1], 50);
     } else {
-      particles(models[1], models[0], 1000);
+      particles(models[1], models[0], 50);
     }
   }
 }
