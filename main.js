@@ -58,25 +58,26 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
   scene.add(new THREE.CameraHelper(dirLight.shadow.camera));
 
   const loader = new OBJLoader();
-  var geom_1, geom_2, mat, mesh1, mesh2;
+  var geom_1, geom_2;
 
   // const model_1 = await loader.loadAsync("data/bunny.obj");
   // const model_2 = await loader.loadAsync("data/garg.obj");
-  geom_1 = model_1.children[0].geometry.clone();
+  geom_1 = model_1.children[0].children[0].geometry.clone();
   geom_1.scale(5, 5, 5);
-  geom_2 = model_2.children[0].geometry.clone();
-  geom_2.scale(5, 5, 5);
+  geom_2 = model_2.children[0].children[0].geometry.clone();
+  geom_2.scale(10, 10, 10);
 
   const geometry = new THREE.BufferGeometry();
 
   const sphereMaterial = {
-    color: 0xff5a,
+    color: 0xefff00,
     transparent: true,
     opacity: 0.7,
     metalness: 0.2,
     roughness: 0.5,
   };
 
+  // ============= DEFINE MATERIALS GUI ================== //
   const gui = new GUI();
   const materialFolder = gui.addFolder("Material");
   materialFolder
@@ -95,28 +96,41 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
 
   console.log(scene);
   function updateMaterial() {
-    for (let i = 0; i < NUM_INSTANCES; i++) {
+    for (let i = 0; i < NUM_INSTANCES * 2; i++) {
       scene.children[i + 3].material.opacity = sphereMaterial.opacity;
       scene.children[i + 3].material.color.set(sphereMaterial.color);
       scene.children[i + 3].material.metalness = sphereMaterial.metalness;
       scene.children[i + 3].material.roughness = sphereMaterial.roughness;
     }
   }
+  // =============== END DEFINE MATERIALS GUI ================== //
 
+  // =================== CALCULATE POSITIONS ================== //
+  const withClone = new Float32Array(NUM_INSTANCES * 2 * 3);
   let mesh1Vertices = await fillWithPoints(geom_1, NUM_INSTANCES);
   console.log("first done");
-  let mesh1VerticesClone = new Float32Array(mesh1Vertices.length);
-  for (let i = 0; i < mesh1Vertices.length; i++) {
+  let mesh1VerticesClone = new Float32Array(NUM_INSTANCES * 2 * 3);
+  for (let i = 0; i < withClone.length; i++) {
+    if (i > mesh1Vertices.length - 1) {
+      mesh1VerticesClone[i] = mesh1Vertices[i - mesh1Vertices.length];
+      withClone[i] = mesh1Vertices[i - mesh1Vertices.length];
+      continue;
+    }
+    withClone[i] = mesh1Vertices[i];
     mesh1VerticesClone[i] = mesh1Vertices[i];
   }
+  console.log(withClone);
   console.log("second done");
-  let mesh2Vertices = await fillWithPoints(geom_2, NUM_INSTANCES);
+  let mesh2Vertices = await fillWithPoints(geom_2, 2 * NUM_INSTANCES);
+  console.log(mesh2Vertices);
   console.log("third done");
+  // ======================================================= //
 
+  // ================ STORE POSITIONS IN ARRAY ============== //
   // itemSize = 3 because there are 3 values (components) per vertex
   geometry.setAttribute(
     "startPosition",
-    new THREE.BufferAttribute(mesh1Vertices, 3)
+    new THREE.BufferAttribute(withClone, 3)
   );
   geometry.setAttribute(
     "position",
@@ -126,14 +140,16 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
     "endPosition",
     new THREE.BufferAttribute(mesh2Vertices, 3)
   );
+  // ========================================================= //
 
-  const offset = new THREE.Vector3(0, 5, -30);
+  const offset = new THREE.Vector3(0, 3, -30);
 
   geometry.rotateY(Math.PI);
 
+  // =================== INSTANTIATE SPHERE ============= //
   const sphereCheckPoint = NUM_INSTANCES / 10;
   let sphereCheckPointCounter = 0;
-  for (let i = 0; i < NUM_INSTANCES; i++) {
+  for (let i = 0; i < 2 * NUM_INSTANCES; i++) {
     const geom = new THREE.SphereGeometry(0.1, 20, 20);
     const mat = new THREE.MeshStandardMaterial({
       color: sphereMaterial.color,
@@ -157,6 +173,7 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
       console.log(`${i} spheres added ${(i / NUM_INSTANCES) * 100}% complete`);
     }
   }
+  // ================== END OF SPHERE ================== //
 
   // ANIMATE
   document.addEventListener("keypress", onDocumentKeyDown, false);
@@ -183,7 +200,7 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
     const rotationM = new THREE.Matrix4();
     rotationM.makeRotationY(time * Math.PI);
 
-    for (let i = 0; i < NUM_INSTANCES; i++) {
+    for (let i = 0; i < 2 * NUM_INSTANCES; i++) {
       const startPositionX = geometry.attributes.startPosition.getX(i);
       const startPositionY = geometry.attributes.startPosition.getY(i);
       const startPositionZ = geometry.attributes.startPosition.getZ(i);
@@ -285,7 +302,7 @@ async function fillWithPoints(geometry, count) {
   return points;
 }
 
-function getInput(canvasName, inputClassName, models, position) {
+function getInput(canvasName, inputClassName, models) {
   const canvas = document.querySelector(canvasName);
   const renderer = new THREE.WebGLRenderer({ canvas });
 
@@ -313,13 +330,14 @@ function getInput(canvasName, inputClassName, models, position) {
         loadedObject = object;
         loaded = true;
         console.log(object);
-        scene.add(object);
+        const normalised = unitize(object, 2);
+        scene.add(normalised);
         const position =
           inputClassName === ".inputfileStarting"
             ? "startPosition"
             : "endPosition";
         console.log(position);
-        models.push(object);
+        models.push(normalised);
         positions.push(position);
         renderer.render(scene, camera);
       });
@@ -352,6 +370,30 @@ const positions = [];
 
 getInput("#c1", ".inputfileStarting", models);
 getInput("#c2", ".inputfileEnding", models);
+function unitize(object, targetSize) {
+  // find bounding box of 'object'
+  var box3 = new THREE.Box3();
+  box3.setFromObject(object);
+  var size = new THREE.Vector3();
+  size.subVectors(box3.max, box3.min);
+  var center = new THREE.Vector3();
+  center.addVectors(box3.max, box3.min).multiplyScalar(0.5);
+
+  // uniform scaling according to objSize
+  var objSize = Math.max(size.x, size.y, size.z);
+  var scaleSet = targetSize / objSize;
+
+  var theObject = new THREE.Object3D();
+  theObject.add(object);
+  object.scale.set(scaleSet, scaleSet, scaleSet);
+  object.position.set(
+    -center.x * scaleSet,
+    -center.y * scaleSet,
+    -center.z * scaleSet
+  );
+
+  return theObject;
+}
 
 function maybeStart() {
   if (models.length === 2) {
