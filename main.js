@@ -385,11 +385,12 @@ getInput("#c1", ".inputfileStarting", models);
 getInput("#c2", ".inputfileEnding", models);
 
 function maybeStart() {
+  const numParticles = document.getElementById("noParticles").value;
   if (models.length === 2) {
     if (positions[0] === "startPosition") {
-      particles(models[0], models[1], 500);
+      particles(models[0], models[1], numParticles);
     } else {
-      particles(models[1], models[0], 500);
+      particles(models[1], models[0], numParticles);
     }
   }
 }
