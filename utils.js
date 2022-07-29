@@ -68,10 +68,6 @@ function setRandomVector(min, max, mesh) {
     inside: isInside(v, mesh),
     vector: v,
   };
-  //   if (!isInside(v, mesh)) {
-  //     return setRandomVector(min, max, mesh);
-  //   }
-  //   return v;
 }
 
 // function to normalize the size of object
@@ -135,4 +131,86 @@ export function getVolume(geometry) {
 
 function signedVolumeOfTriangle(p1, p2, p3) {
   return p1.dot(p2.cross(p3)) / 6.0;
+}
+function isInsideGrid(v, grid, mesh) {
+  const SUBDIVIDE_COUNT = 10;
+  const bbox = mesh.geometry.boundingBox;
+  let x_length = Math.ceil(bbox.max.x - bbox.min.x);
+  let y_length = Math.ceil(bbox.max.y - bbox.min.y);
+  let z_length = Math.ceil(bbox.max.z - bbox.min.z);
+
+  let x_step = x_length / SUBDIVIDE_COUNT;
+  let y_step = y_length / SUBDIVIDE_COUNT;
+  let z_step = z_length / SUBDIVIDE_COUNT;
+
+  let x_grid_pos = Math.floor(v.x - bbox.min.x / x_step);
+  let y_grid_pos = Math.floor(v.y - bbox.min.y / y_step);
+  let z_grid_pos = Math.floor(v.z - bbox.min.z / z_step);
+
+  //   if (
+  //     gridMap[mesh.uuid][
+  //       (x_grid_pos,
+  //       x_grid_pos + 1,
+  //       y_grid_pos,
+  //       y_grid_pos + 1,
+  //       z_grid_pos,
+  //       z_grid_pos + 1)
+  //     ]
+  //   ) {
+  //     return gridMap[
+  //       (x_grid_pos,
+  //       x_grid_pos + 1,
+  //       y_grid_pos,
+  //       y_grid_pos + 1,
+  //       z_grid_pos,
+  //       z_grid_pos + 1)
+  //     ];
+  //   }
+
+  const x_to_check = [x_grid_pos, x_grid_pos + 1];
+  const y_to_check = [y_grid_pos, y_grid_pos + 1];
+  const z_to_check = [z_grid_pos, z_grid_pos + 1];
+
+  let hit = 0;
+  for (let x of x_to_check) {
+    for (let y of y_to_check) {
+      for (let z of z_to_check) {
+        if (grid[x][y][z]) {
+          hit++;
+        }
+      }
+    }
+  }
+  if (hit === 0) {
+    gridMap[mesh.uuid][
+      (x_grid_pos,
+      x_grid_pos + 1,
+      y_grid_pos,
+      y_grid_pos + 1,
+      z_grid_pos,
+      z_grid_pos + 1)
+    ] = false;
+    return false;
+  } else if (hit === 8) {
+    gridMap[mesh.uuid][
+      (x_grid_pos,
+      x_grid_pos + 1,
+      y_grid_pos,
+      y_grid_pos + 1,
+      z_grid_pos,
+      z_grid_pos + 1)
+    ] = true;
+    return true;
+  }
+  return isInsideMesh(v, mesh);
+}
+
+function isInsideMesh(v, mesh) {
+  const ray = new THREE.Raycaster(
+    v,
+    new THREE.Vector3(v.x + 1, v.y + 1, v.z + 1)
+  );
+  const intersects = ray.intersectObject(mesh);
+
+  return intersects.length % 2 == 1;
 }
