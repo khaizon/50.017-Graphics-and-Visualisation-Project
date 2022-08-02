@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { RGB_PVRTC_2BPPV1_Format } from "three";
 
 export async function fillWithPoints(geometry, count) {
   geometry.computeBoundingBox();
@@ -213,4 +214,51 @@ function isInsideMesh(v, mesh) {
   const intersects = ray.intersectObject(mesh);
 
   return intersects.length % 2 == 1;
+}
+function lerp (p0, p1, t) {
+  return (1-t)*p0 + t*p1;
+}
+export function computeBezier(h, timescale, t) {
+  // construct simple cubic bezier (4 points)
+  let p1 = [], p2 = [], p3 = [], p4 = [];
+  let p12 = [], p23 = [], p34 = [];
+  let p123 = [], p234 = [];
+  let final = [];
+
+
+  p1[0] = 0.0;
+  p1[1] = 0.0;
+
+  p2[0] = 0.5*timescale;
+  p2[1] = 0.0;
+
+  p3[0] = 0.5*timescale;
+  p3[1] = h;
+  
+  p4[0] = timescale;
+  p4[1] = h;
+  
+  // TODO: recursive function?
+  // 1st round
+  p12[0] = lerp(p1[0], p2[0], t);
+  p12[1] = lerp(p1[1], p2[1], t);
+
+  p23[0] = lerp(p2[0], p3[0], t);
+  p23[1] = lerp(p2[1], p3[1], t);
+
+  p34[0] = lerp(p3[0], p4[0], t);
+  p34[1] = lerp(p3[1], p4[1], t);
+
+  // 2nd round
+  p123[0] = lerp(p12[0], p23[0], t);
+  p123[1] = lerp(p12[1], p23[1], t);
+
+  p234[0] = lerp(p23[0], p34[0], t);
+  p234[1] = lerp(p23[1], p34[1], t);
+
+  // 3rd round
+  final[0] = lerp(p123[0], p234[0], t);
+  final[1] = lerp(p123[1], p234[1], t);
+
+  return final;
 }

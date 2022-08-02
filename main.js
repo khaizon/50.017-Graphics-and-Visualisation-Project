@@ -3,7 +3,12 @@ import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GUI } from "dat.gui";
 import styles from "/css/styles.css";
+<<<<<<< HEAD
 import { fillWithPoints, unitize, getVolume } from "./utils";
+=======
+import { fillWithPoints, unitize, computeBezier } from "./utils";
+import { lerp } from "three/src/math/MathUtils";
+>>>>>>> interpolation
 
 export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   // SCENE
@@ -256,16 +261,36 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   }
   // =============== END DEFINE MATERIALS GUI ================== //
   // ANIMATE
+  var isMorph = false;
+  var time = 0;
+  const timescale_placeholder = new THREE.Object3D();
+  timescale_placeholder.timescale = 2;
+  const animationFolder = gui.addFolder("Animation");
+  animationFolder.add(timescale_placeholder, "timescale", 1, 5);
+
+  function advanceMoprh() {
+    if (time < 1) time += 0.01/timescale_placeholder.timescale;
+    console.log(time);
+  }
+  function deadvanceMoprh() {
+    if (time > 0) time -= (0.01/timescale_placeholder.timescale);
+    console.log(time);
+  }
+
   document.addEventListener("keypress", onDocumentKeyDown, false);
   function onDocumentKeyDown(event) {
     if (event.code == "KeyL") {
       advanceMoprh();
-    } else if (event.code == "KeyJ") {
+    } 
+    else if (event.code == "KeyJ") {
       deadvanceMoprh();
     } else if (event.code == "KeyK") {
       advanceMoprhPart2();
     } else if (event.code == "KeyI") {
       deadvanceMoprhPart2();
+    }
+    else if (event.code == "KeyP") {
+      isMorph = true;
     }
   }
 
@@ -297,6 +322,12 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   function animate() {
     const rotationM = new THREE.Matrix4();
     rotationM.makeRotationY(time * Math.PI);
+    if (time == 1){
+      isMorph = false;
+    }
+    if(isMorph && time <= 1){
+      time += 0.01/timescale_placeholder.timescale;
+    }
 
     for (let i = 0; i < 2 * numberOfEndingVertices; i++) {
       const startPositionX = geometry.attributes.startPosition.getX(i);
@@ -315,15 +346,18 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
       const endPositionPart2Y = geometry.attributes.endPosition2.getY(i);
       const endPositionPart2Z = geometry.attributes.endPosition2.getZ(i);
 
+      const lerp_value = computeBezier(1, 1, time)[1];
+
       positionX =
-        (startPositionX * (1 - time) + endPositionX * time) * (1 - time2) +
+        (startPositionX * (1 - lerp_value) + endPositionX * lerp_value) * (1 - time2) +
         endPositionPart2X * time2;
       positionY =
-        (startPositionY * (1 - time) + endPositionY * time) * (1 - time2) +
+        (startPositionY * (1 - lerp_value) + endPositionY * lerp_value) * (1 - time2) +
         endPositionPart2Y * time2;
       positionZ =
-        (startPositionZ * (1 - time) + endPositionZ * time) * (1 - time2) +
+        (startPositionZ * (1 - lerp_value) + endPositionZ * lerp_value) * (1 - time2) +
         endPositionPart2Z * time2;
+    
 
       scene.children[i + 3].position
         .set(positionX, positionY, positionZ)
