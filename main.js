@@ -3,12 +3,7 @@ import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GUI } from "dat.gui";
 import styles from "/css/styles.css";
-<<<<<<< HEAD
-import { fillWithPoints, unitize, getVolume } from "./utils";
-=======
 import { fillWithPoints, unitize, computeBezier } from "./utils";
-import { lerp } from "three/src/math/MathUtils";
->>>>>>> interpolation
 
 export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   // SCENE
