@@ -181,13 +181,17 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
   // ANIMATE
   var isMorph = false;
   var time = 0;
-  const timescale = 2;
+  const timescale_placeholder = new THREE.Object3D();
+  timescale_placeholder.timescale = 2;
+  const animationFolder = gui.addFolder("Animation");
+  animationFolder.add(timescale_placeholder, "timescale", 1, 5);
+
   function advanceMoprh() {
-    if (time < 1) time += 0.01/timescale;
+    if (time < 1) time += 0.01/timescale_placeholder.timescale;
     console.log(time);
   }
   function deadvanceMoprh() {
-    if (time > 0) time -= (0.01/timescale);
+    if (time > 0) time -= (0.01/timescale_placeholder.timescale);
     console.log(time);
   }
 
@@ -202,7 +206,7 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
     else if (event.code == "KeyK") {
       isMorph = true;
     }
-    else if (event.code == "KeyH") {
+    else if (event.code == "KeyR") {
       time = 0
       isMorph = false;
     }
@@ -217,7 +221,7 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
       isMorph = false;
     }
     if(isMorph && time <= 1){
-      time += 0.01/timescale;
+      time += 0.01/timescale_placeholder.timescale;
     }
     
     for (let i = 0; i < 2 * NUM_INSTANCES; i++) {
