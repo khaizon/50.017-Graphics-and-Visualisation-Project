@@ -180,71 +180,44 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
 
   // ANIMATE
   var isMorph = false;
-  
+  var time = 0;
+  const timescale = 2;
+  function advanceMoprh() {
+    if (time < 1) time += 0.01/timescale;
+    console.log(time);
+  }
+  function deadvanceMoprh() {
+    if (time > 0) time -= (0.01/timescale);
+    console.log(time);
+  }
+
   document.addEventListener("keypress", onDocumentKeyDown, false);
   function onDocumentKeyDown(event) {
     if (event.code == "KeyL") {
       advanceMoprh();
-    } else if (event.code == "KeyJ") {
+    } 
+    else if (event.code == "KeyJ") {
       deadvanceMoprh();
     } 
     else if (event.code == "KeyK") {
-      isMorph = !isMorph;
+      isMorph = true;
     }
     else if (event.code == "KeyH") {
-      console.log(geometry.attributes.position);
+      time = 0
+      isMorph = false;
     }
   }
-
-  // // creating a keyframe track for the points
-  // const times = [0, 5];
-  // const steps = [];
-  // for (let i = 0; i < 2 * NUM_INSTANCES; i++) {
-  //   const startPositionX = geometry.attributes.startPosition.getX(i);
-  //   const startPositionY = geometry.attributes.startPosition.getY(i);
-  //   const startPositionZ = geometry.attributes.startPosition.getZ(i);
-  //   steps.push(startPositionX);
-  //   steps.push(startPositionY);
-  //   steps.push(startPositionZ);
-  // }
-  // for (let i = 0; i < 2 * NUM_INSTANCES; i++) {
-  //   const endPositionX = geometry.attributes.endPosition.getX(i);
-  //   const endPositionY = geometry.attributes.endPosition.getY(i);
-  //   const endPositionZ = geometry.attributes.endPosition.getZ(i);
-  //   steps.push(endPositionX);
-  //   steps.push(endPositionY);
-  //   steps.push(endPositionZ);
-  // }
-  // const track = new THREE.VectorKeyframeTrack('.geometry.attributes.position', times, steps);
-  // const morphClip = new THREE.AnimationClip('morph', -1, [track]);
-
-  // const placeholder_mesh = new THREE.Mesh(geometry);
-  // console.log(geometry);
-  // console.log(placeholder_mesh);
-  // const mixer = new THREE.AnimationMixer(placeholder_mesh);
-  // const test_morph = mixer.clipAction(morphClip);
-  // const clock = new THREE.Clock();
-  // placeholder_mesh.tick = (delta) => {
-  //   mixer.update(delta);
-  //   // console.log(geometry.attributes.position);
-  // }
   
-  var time = 0;
-  function advanceMoprh() {
-    if (time < 1) time += 0.01;
-    console.log(time);
-  }
-
-  function deadvanceMoprh() {
-    if (time > 0) time -= 0.01;
-    console.log(time);
-  }
+  
   console.log(geometry.attributes.startPosition.getX(0));
   function animate() {
     const rotationM = new THREE.Matrix4();
     rotationM.makeRotationY(time * Math.PI);
-    if(isMorph && time < 1){
-      time += 0.005;
+    if (time == 1){
+      isMorph = false;
+    }
+    if(isMorph && time <= 1){
+      time += 0.01/timescale;
     }
     
     for (let i = 0; i < 2 * NUM_INSTANCES; i++) {
@@ -260,7 +233,7 @@ export const particles = async (model_1, model_2, NUM_INSTANCES) => {
       const endPositionY = geometry.attributes.endPosition.getY(i);
       const endPositionZ = geometry.attributes.endPosition.getZ(i);
 
-      const lerp_value = computeBezier(1.0, 1.0, time)[1];
+      const lerp_value = computeBezier(1, 1, time)[1];
     
       positionX = startPositionX * (1 - lerp_value) + endPositionX * lerp_value;
       positionY = startPositionY * (1 - lerp_value) + endPositionY * lerp_value;
