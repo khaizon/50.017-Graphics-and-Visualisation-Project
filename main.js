@@ -329,13 +329,13 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   }
  
   
-  const gravity = 9.8;
+  const gravity = 0.06;
   let velocity, displacement;
   const resistanceForce = 10 ;
   const initialSpeed = 5;
   var startGrav = false;
+  let explodeEndTime;
   function explodeParticles() {
-    // if (time > 1 || time < 0) {
       let px, py, pz, dx, dy, dz;
       let startPx, startPy, startPz;
       const timePassed = clock.getElapsedTime();
@@ -369,53 +369,41 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
           }
           geometry.attributes.position.needsUpdate = true;
 
-          console.log(speed);
+          // console.log(speed);
           if (speed < 0) {
-            // console.log("here");
             savePositionState(geometry, "explodeEndPosition");
+            explodeEndTime = elapsedTime;
             startGrav = true;
           }
  
         }
 
-        // if (startGrav) {
-        //   for (let i=NUM_INSTANCES; i<particlesCount; i++) {
-        //     // px = scene.children[i+3].position.x;
-        //     py = geometry.attributes.position.getY(i);
-        //     // pz = scene.children[i+3].position.z;
+        if (startGrav) {
+          const gravityElapsedTime = timePassed - explodeEndTime;
+          let speed = gravity*gravityElapsedTime;
+
+          for (let i=NUM_INSTANCES; i<particlesCount; i++) {
+            py = geometry.attributes.position.getY(i);
             
-        //     startPx = geometry.attributes.explodeEndPosition.getX(i);
-        //     startPy = geometry.attributes.explodeEndPosition.getY(i);
-        //     startPz = geometry.attributes.explodeEndPosition.getZ(i);
+            startPx = geometry.attributes.explodeEndPosition.getX(i);
+            startPy = geometry.attributes.explodeEndPosition.getY(i);
+            startPz = geometry.attributes.explodeEndPosition.getZ(i);
 
             
-        //     if (py > -10) {
-        //       if (i === 50){
-        //         console.log(py);
-        //       }
-        //       velocity = gravity * elapsedTime;
-        //       displacement = (startPy) - (Math.pow(gravity * elapsedTime, 2) + velocity * elapsedTime) / 10;
-        //       if (displacement < -10) displacement = -10;
+            if (py > -10) {
+              displacement = startPy - (speed/2)*gravityElapsedTime;
+              
+              if (displacement < -10) displacement = -10;
     
-        //       scene.children[i+3].position
-        //       .set(startPx, displacement, startPz)
-        //       .add(offset);
+              scene.children[i+3].position
+              .setComponent(1, displacement + offset.y);
     
-        //       geometry.attributes.position.setXYZ(i, px, displacement, pz);
-        //     }
-        //     geometry.attributes.position.needsUpdate = true;
-        //   }
-        // }
+              geometry.attributes.position.setXYZ(i, px, displacement, pz);
+            }
+          }
+          geometry.attributes.position.needsUpdate = true;
+        }
       }
-    // }
-    // else {
-    //   clock.start();
-    // }
-
-    // geometry.attributes.position.needsUpdate = true;
-    
-    // renderer.render(scene, camera);
-    // requestAnimationFrame(explodeParticles);
   }
 
   const clock = new THREE.Clock();
