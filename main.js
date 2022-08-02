@@ -3,7 +3,7 @@ import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GUI } from "dat.gui";
 import styles from "/css/styles.css";
-import { fillWithPoints, unitize, computeBezier, getVolume } from "./utils";
+import { fillWithPoints, unitize, computeBezier, getVolume, savePositionState } from "./utils";
 
 export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   // SCENE
@@ -256,8 +256,9 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   }
   // =============== END DEFINE MATERIALS GUI ================== //
   // ANIMATE
-  var isMorph = false;
-  var time = 0;
+  let isMorph = false;
+  let isReset = true;
+  let time = 0;
   const timescale_placeholder = new THREE.Object3D();
   timescale_placeholder.timescale = 2;
   const animationFolder = gui.addFolder("Animation");
@@ -286,9 +287,10 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
     else if (event.code == "KeyR") {
       time = 0;
       isMorph = false;
+      isReset = true;
     }
   }
-
+  
   function animateMorph(time) {
     const rotationM = new THREE.Matrix4();
     rotationM.makeRotationY(lerp_value * Math.PI);
@@ -323,130 +325,133 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
 
       geometry.attributes.position.setXYZ(i, positionX, positionY, positionZ);
     }
+    geometry.attributes.position.needsUpdate = true;
   }
  
+  
   const gravity = 9.8;
-  let explosionForce = 20;
   let velocity, displacement;
-  var lerp_value;
-  function animate() {
-    if (time >= 0){
-      animateMorph(time);
-    }
-
-    if (time >= 1){
-      isMorph = false;
-    }
-    if(isMorph && time < 1){
-      time += 0.01/timescale_placeholder.timescale;
-      // console.log(lerp_value);
-
-      animateMorph(time);
-    }
-
-    
-    renderer.render(scene, camera);
-    requestAnimationFrame(animate);
-  }
-
-  const resistanceForce = 30;
-  const initialSpeed = 20;
+  const resistanceForce = 10 ;
+  const initialSpeed = 5;
   var startGrav = false;
   function explodeParticles() {
-    if (time > 1 || time < 0) {
+    // if (time > 1 || time < 0) {
       let px, py, pz, dx, dy, dz;
-      let newPx, newPy, newPz;
+      let startPx, startPy, startPz;
       const timePassed = clock.getElapsedTime();
       const particlesCount = geometry.attributes.position.count;
       if (timePassed > 3) {
         const elapsedTime = timePassed - 3;
         if (!startGrav){
+          let speed = initialSpeed - resistanceForce*elapsedTime;
+
           for (let i = NUM_INSTANCES; i < particlesCount; i++) {
-            px = geometry.attributes.position.getX(i);
-            py = geometry.attributes.position.getY(i);
-            pz = geometry.attributes.position.getZ(i);
+            startPx = geometry.attributes.morphEndPosition.getX(i);
+            startPy = geometry.attributes.morphEndPosition.getY(i);
+            startPz = geometry.attributes.morphEndPosition.getZ(i);
 
             dx = geometry.attributes.explosionDirection.getX(i); 
             dy = geometry.attributes.explosionDirection.getY(i); 
             dz = geometry.attributes.explosionDirection.getZ(i);
 
-            // console.log("old px: " + geometry.attributes.position.getX(40));
             if (dx != 0 && dy != 0 && dz != 0) {
-              // newPx = px + ((dx * explosionForce) / 200);
-              // newPy = py + ((dy * explosionForce) / 200);
-              // newPz = pz + ((dz * explosionForce) / 200);
-              
-              newPx = px + dx*initialSpeed*elapsedTime - 0.5*dx*resistanceForce*Math.pow(elapsedTime, 2);
-              newPy = py + dy*initialSpeed*elapsedTime - 0.5*dy*resistanceForce*Math.pow(elapsedTime, 2);
-              newPz = pz + dz*initialSpeed*elapsedTime - 0.5*dz*resistanceForce*Math.pow(elapsedTime, 2);
+              px = startPx + (speed*dx/2)*elapsedTime;
+              py = startPy + (speed*dy/2)*elapsedTime;
+              pz = startPz + (speed*dz/2)*elapsedTime;
 
-              if (newPz < -6) newPz = -6;
+              if (py < -10) py = -10;
             }
             
-            
-            // console.log("new px: " + geometry.attributes.position.getX(40));
-
             scene.children[i+3].position
-              .set(newPx, newPy, newPz)
+              .set(px, py, pz)
               .add(offset);
-            geometry.attributes.position.setXYZ(i, newPx, newPy, newPz);
+            geometry.attributes.position.setXYZ(i, px, py, pz);
           }
           geometry.attributes.position.needsUpdate = true;
 
-          let speed = initialSpeed - resistanceForce*elapsedTime;
-          // console.log(speed);
+          console.log(speed);
           if (speed < 0) {
             // console.log("here");
+            savePositionState(geometry, "explodeEndPosition");
             startGrav = true;
           }
  
         }
 
-        if (startGrav) {
-          for (let i=NUM_INSTANCES; i<particlesCount; i++) {
-            // px = scene.children[i+3].position.x;
-            // py = scene.children[i+3].position.y;
-            // pz = scene.children[i+3].position.z;
+        // if (startGrav) {
+        //   for (let i=NUM_INSTANCES; i<particlesCount; i++) {
+        //     // px = scene.children[i+3].position.x;
+        //     py = geometry.attributes.position.getY(i);
+        //     // pz = scene.children[i+3].position.z;
             
-            px = geometry.attributes.position.getX(i);
-            py = geometry.attributes.position.getY(i);
-            pz = geometry.attributes.position.getZ(i);
+        //     startPx = geometry.attributes.explodeEndPosition.getX(i);
+        //     startPy = geometry.attributes.explodeEndPosition.getY(i);
+        //     startPz = geometry.attributes.explodeEndPosition.getZ(i);
 
-            if (i === 50){
-              console.log(py);
-            }
-
-            if (py > -10) {
-              velocity = gravity * elapsedTime;
-              displacement = (py) - (Math.pow(gravity * elapsedTime, 2) + velocity * elapsedTime) / 10;
-              if (displacement < -10) displacement = -10;
+            
+        //     if (py > -10) {
+        //       if (i === 50){
+        //         console.log(py);
+        //       }
+        //       velocity = gravity * elapsedTime;
+        //       displacement = (startPy) - (Math.pow(gravity * elapsedTime, 2) + velocity * elapsedTime) / 10;
+        //       if (displacement < -10) displacement = -10;
     
-              scene.children[i+3].position
-              .set(px, displacement, pz)
-              .add(offset);
+        //       scene.children[i+3].position
+        //       .set(startPx, displacement, startPz)
+        //       .add(offset);
     
-              // geometry.attributes.position.setXYZ(i, newPx, displacement, newPz);
-            }
-          }
-        }
+        //       geometry.attributes.position.setXYZ(i, px, displacement, pz);
+        //     }
+        //     geometry.attributes.position.needsUpdate = true;
+        //   }
+        // }
       }
-    }
-    else {
-      clock.start();
-    }
+    // }
+    // else {
+    //   clock.start();
+    // }
 
-    geometry.attributes.position.needsUpdate = true;
+    // geometry.attributes.position.needsUpdate = true;
     
-    renderer.render(scene, camera);
-    requestAnimationFrame(explodeParticles);
+    // renderer.render(scene, camera);
+    // requestAnimationFrame(explodeParticles);
   }
 
   const clock = new THREE.Clock();
+  var lerp_value;
+  function animate() {
+    
 
+    if (time >= 1){
+      if (isMorph) {
+        savePositionState(geometry, "morphEndPosition");
+        // console.log(geometry.attributes.morphEndPosition);
+        // console.log(geometry.attributes.position);
+      }
+      isMorph = false;
+      explodeParticles();
+    }
+    else if(isMorph && time < 1){
+      time += 0.01/timescale_placeholder.timescale;
+      // console.log(lerp_value);
+      clock.start();
+
+      animateMorph(time);
+    }
+
+    if (isReset){
+      animateMorph(time);
+      isReset = false;
+    }
+    
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+  }
  
   document.body.appendChild(renderer.domElement);
   animate();
-  explodeParticles();
+  // explodeParticles();
   
   // RESIZE HANDLER
   function onWindowResize() {

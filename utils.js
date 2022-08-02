@@ -262,3 +262,11 @@ export function computeBezier(h, timescale, t) {
 
   return final;
 }
+
+export function savePositionState(geometry, attribute){
+  geometry.setAttribute(
+    attribute,
+    new THREE.BufferAttribute(geometry.attributes.position.array, 3)
+  );
+  return geometry;
+}
