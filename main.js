@@ -37,9 +37,6 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   // AMBIENT LIGHT
   scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 
-  const axisHelper = new THREE.AxesHelper(10);
-  scene.add(axisHelper);
-
   // DIRECTIONAL LIGHT
   const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
   dirLight.position.x += 20;
@@ -173,7 +170,7 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   endGeometry.setAttribute('position', new THREE.BufferAttribute(mesh2Vertices, 3));
   endGeometry.computeBoundingBox();
   endGeometry.boundingBox.getCenter(centerOfMesh);
-  // centerOfMesh.add(offset);
+  console.log(centerOfMesh);
   let explosionDirection = new Float32Array(mesh2Vertices.length);
   let directionX, directionY, directionZ;
   for (let i=NUM_INSTANCES * 3; i<mesh2Vertices.length; i += 3) {
@@ -185,17 +182,20 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
     explosionDirection[i+1] = directionY / magnitude;
     explosionDirection[i+2] = directionZ / magnitude;
   }
+  console.log(explosionDirection);
   geometry.setAttribute(
     "explosionDirection",
     new THREE.BufferAttribute(explosionDirection, 3)
   );
+
+  console.log(geometry.attributes);
   
-  const originGeom = new THREE.SphereGeometry(0.1, 20, 20);
-  const testmat = new THREE.MeshBasicMaterial();
-  testmat.color = new THREE.Color(0xff0000);
-  const center = new THREE.Mesh(originGeom, testmat);
-  center.position.set(centerOfMesh.x, centerOfMesh.y, centerOfMesh.z);
-  scene.add(center);
+  // const originGeom = new THREE.SphereGeometry(0.1, 20, 20);
+  // const testmat = new THREE.MeshBasicMaterial();
+  // testmat.color = new THREE.Color(0xff0000);
+  // const center = new THREE.Mesh(originGeom, testmat);
+  // center.position.set(centerOfMesh.x, centerOfMesh.y, centerOfMesh.z);
+  // scene.add(center);
 
   geometry.rotateY(Math.PI);
 
@@ -294,7 +294,6 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   const gravity = 9.8;
   let explosionForce = 20;
   let velocity, displacement;
-  let newPx = 0, newPy = 0, newPz = 0;
   function animate() {
     const rotationM = new THREE.Matrix4();
     rotationM.makeRotationY(time * Math.PI);
@@ -334,56 +333,6 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
       geometry.attributes.position.setXYZ(i, positionX, positionY, positionZ);
     }
 
-    let px, py, pz, dx, dy, dz;
-    if (time > 1 || time < 0) {
-      const timePassed = clock.getElapsedTime();
-      const particlesCount = geometry.attributes.position.count;
-      if (timePassed > 3) {
-        const elapsedTime = timePassed - 3;
-        for (let i=NUM_INSTANCES; i<particlesCount; i++) {
-          px = geometry.attributes.position.getX(i);
-          py = geometry.attributes.position.getY(i);
-          pz = geometry.attributes.position.getZ(i);
-
-          dx = geometry.attributes.explosionDirection.getX(i);
-          dy = geometry.attributes.explosionDirection.getY(i);
-          dz = geometry.attributes.explosionDirection.getZ(i);
-
-          newPx += (dx * explosionForce) / 1000;
-          newPy += (dy * explosionForce) / 1000;
-          newPz += (dz * explosionForce) / 1000;
-
-          px += newPx;
-          py += newPy;
-          pz += newPz;
-
-          scene.children[i].position
-            .set(px, py, pz)
-            .add(offset);
-          geometry.attributes.position.setXYZ(i, px, py, pz);
-
-          if (explosionForce < 0.1) {
-            if (py > -6) {
-              // console.log("hm");
-              velocity = gravity * elapsedTime;
-              displacement = (py + newPy) - (Math.pow(gravity * elapsedTime, 2) + velocity * elapsedTime) / 10;
-              if (displacement < -6) displacement = -6;
-    
-              scene.children[i].position
-              .set(px, displacement, pz)
-              .add(offset);
-    
-              geometry.attributes.position.setXYZ(i, px, displacement, pz);
-            }
-          }
-        }
-      explosionForce /= 1.2;
-      }
-    }
-    else {
-      clock.start();
-    }
-
     geometry.computeVertexNormals();
     geometry.attributes.position.needsUpdate = true;
     geometry.attributes.startPosition.needsUpdate = true;
@@ -393,10 +342,75 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
     requestAnimationFrame(animate);
   }
 
+  function explodeParticles() {
+    if (time > 1 || time < 0) {
+      let px, py, pz, dx, dy, dz;
+      const timePassed = clock.getElapsedTime();
+      const particlesCount = geometry.attributes.position.count;
+      if (timePassed > 3) {
+        const elapsedTime = timePassed - 3;
+        for (let i = 0; i < 2 * numberOfEndingVertices; i++) {
+          px = geometry.attributes.position.getX(i);
+          py = geometry.attributes.position.getY(i);
+          pz = geometry.attributes.position.getZ(i);
+
+          dx = geometry.attributes.explosionDirection.getX(i); 
+          dy = geometry.attributes.explosionDirection.getY(i); 
+          dz = geometry.attributes.explosionDirection.getZ(i);
+
+          // console.log("old px: " + geometry.attributes.position.getX(40));
+
+          if (dx != 0 && dy != 0 && dz != 0) {
+            px += px + ((dx * explosionForce) / 200);
+            py += py + ((dy * explosionForce) / 200);
+            pz += pz + ((dz * explosionForce) / 200);
+
+            if (pz < -6) pz = -6;
+          }
+
+          // console.log("new px: " + geometry.attributes.position.getX(40));
+
+          scene.children[i].position
+            .set(px, py, pz)
+            .add(offset);
+          geometry.attributes.position.setXYZ(i, px, py, pz);
+        }
+        if (explosionForce < 0.1) {
+          for (let i=NUM_INSTANCES; i<particlesCount; i++) {
+            px = geometry.attributes.position.getX(i);
+            py = geometry.attributes.position.getY(i);
+            pz = geometry.attributes.position.getZ(i);
+            if (py > -10) {
+              velocity = gravity * elapsedTime;
+              displacement = (py) - (Math.pow(gravity * elapsedTime, 2) + velocity * elapsedTime) / 10;
+              if (displacement < -10) displacement = -10;
+    
+              scene.children[i].position
+              .set(px, displacement, pz)
+              .add(offset);
+    
+              geometry.attributes.position.setXYZ(i, px, displacement, pz);
+            }
+          }
+        }
+      }
+      explosionForce /= 1.2;
+    }
+    else {
+      clock.start();
+    }
+
+    geometry.attributes.position.needsUpdate = true;
+    
+    renderer.render(scene, camera);
+    requestAnimationFrame(explodeParticles);
+  }
+
   const clock = new THREE.Clock();
 
   document.body.appendChild(renderer.domElement);
   animate();
+  explodeParticles();
 
   // RESIZE HANDLER
   function onWindowResize() {
