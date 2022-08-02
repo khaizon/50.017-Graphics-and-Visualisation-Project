@@ -3,7 +3,7 @@ import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GUI } from "dat.gui";
 import styles from "/css/styles.css";
-import { fillWithPoints, unitize, computeBezier } from "./utils";
+import { fillWithPoints, unitize, computeBezier, getVolume } from "./utils";
 
 export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   // SCENE
@@ -261,15 +261,15 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   const timescale_placeholder = new THREE.Object3D();
   timescale_placeholder.timescale = 2;
   const animationFolder = gui.addFolder("Animation");
-  animationFolder.add(timescale_placeholder, "timescale", 1, 5);
+  animationFolder.add(timescale_placeholder, "timescale", 0.5, 5);
 
   function advanceMoprh() {
     if (time < 1) time += 0.01/timescale_placeholder.timescale;
-    console.log(time);
+    // console.log(time);
   }
   function deadvanceMoprh() {
     if (time > 0) time -= (0.01/timescale_placeholder.timescale);
-    console.log(time);
+    // console.log(time);
   }
 
   document.addEventListener("keypress", onDocumentKeyDown, false);
@@ -279,52 +279,23 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
     } 
     else if (event.code == "KeyJ") {
       deadvanceMoprh();
-    } else if (event.code == "KeyK") {
-      advanceMoprhPart2();
-    } else if (event.code == "KeyI") {
-      deadvanceMoprhPart2();
-    }
+    } 
     else if (event.code == "KeyP") {
       isMorph = true;
     }
-  }
-
-  var time = 0;
-  var time2 = 0;
-  function advanceMoprh() {
-    if (time < 1) time += 0.01;
-    console.log(time);
-  }
-
-  function deadvanceMoprh() {
-    if (time > 0) time -= 0.01;
-    console.log(time);
-  }
-
-  function advanceMoprhPart2() {
-    if (time2 < 1) time2 += 0.01;
-    console.log(time2);
-  }
-
-  function deadvanceMoprhPart2() {
-    if (time2 > 0) time2 -= 0.01;
-    console.log(time2);
-  }
-
-  const gravity = 9.8;
-  let explosionForce = 20;
-  let velocity, displacement;
-  function animate() {
-    const rotationM = new THREE.Matrix4();
-    rotationM.makeRotationY(time * Math.PI);
-    if (time == 1){
+    else if (event.code == "KeyR") {
+      time = 0;
       isMorph = false;
     }
-    if(isMorph && time <= 1){
-      time += 0.01/timescale_placeholder.timescale;
-    }
+  }
+
+  function animateMorph(time) {
+    const rotationM = new THREE.Matrix4();
+    rotationM.makeRotationY(lerp_value * Math.PI);
+    lerp_value =  computeBezier(1, 1, time)[1];
 
     for (let i = 0; i < 2 * numberOfEndingVertices; i++) {
+
       const startPositionX = geometry.attributes.startPosition.getX(i);
       const startPositionY = geometry.attributes.startPosition.getY(i);
       const startPositionZ = geometry.attributes.startPosition.getZ(i);
@@ -337,93 +308,128 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
       const endPositionY = geometry.attributes.endPosition.getY(i);
       const endPositionZ = geometry.attributes.endPosition.getZ(i);
 
-      const endPositionPart2X = geometry.attributes.endPosition2.getX(i);
-      const endPositionPart2Y = geometry.attributes.endPosition2.getY(i);
-      const endPositionPart2Z = geometry.attributes.endPosition2.getZ(i);
-
-      const lerp_value = computeBezier(1, 1, time)[1];
-
       positionX =
-        (startPositionX * (1 - lerp_value) + endPositionX * lerp_value) * (1 - time2) +
-        endPositionPart2X * time2;
+        (startPositionX * (1 - lerp_value) + endPositionX * lerp_value);
       positionY =
-        (startPositionY * (1 - lerp_value) + endPositionY * lerp_value) * (1 - time2) +
-        endPositionPart2Y * time2;
+        (startPositionY * (1 - lerp_value) + endPositionY * lerp_value);
       positionZ =
-        (startPositionZ * (1 - lerp_value) + endPositionZ * lerp_value) * (1 - time2) +
-        endPositionPart2Z * time2;
+        (startPositionZ * (1 - lerp_value) + endPositionZ * lerp_value);
     
 
-      scene.children[i + 3].position
+      scene.children[i+3].position
         .set(positionX, positionY, positionZ)
         .applyMatrix4(rotationM)
         .add(offset);
 
       geometry.attributes.position.setXYZ(i, positionX, positionY, positionZ);
     }
+  }
+ 
+  const gravity = 9.8;
+  let explosionForce = 20;
+  let velocity, displacement;
+  var lerp_value;
+  function animate() {
+    if (time >= 0){
+      animateMorph(time);
+    }
 
-    geometry.computeVertexNormals();
-    geometry.attributes.position.needsUpdate = true;
-    geometry.attributes.startPosition.needsUpdate = true;
-    geometry.attributes.endPosition.needsUpdate = true;
+    if (time >= 1){
+      isMorph = false;
+    }
+    if(isMorph && time < 1){
+      time += 0.01/timescale_placeholder.timescale;
+      // console.log(lerp_value);
 
+      animateMorph(time);
+    }
+
+    
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
   }
 
+  const resistanceForce = 30;
+  const initialSpeed = 20;
+  var startGrav = false;
   function explodeParticles() {
     if (time > 1 || time < 0) {
       let px, py, pz, dx, dy, dz;
+      let newPx, newPy, newPz;
       const timePassed = clock.getElapsedTime();
       const particlesCount = geometry.attributes.position.count;
       if (timePassed > 3) {
         const elapsedTime = timePassed - 3;
-        for (let i = 0; i < 2 * numberOfEndingVertices; i++) {
-          px = geometry.attributes.position.getX(i);
-          py = geometry.attributes.position.getY(i);
-          pz = geometry.attributes.position.getZ(i);
-
-          dx = geometry.attributes.explosionDirection.getX(i); 
-          dy = geometry.attributes.explosionDirection.getY(i); 
-          dz = geometry.attributes.explosionDirection.getZ(i);
-
-          // console.log("old px: " + geometry.attributes.position.getX(40));
-
-          if (dx != 0 && dy != 0 && dz != 0) {
-            px += px + ((dx * explosionForce) / 200);
-            py += py + ((dy * explosionForce) / 200);
-            pz += pz + ((dz * explosionForce) / 200);
-
-            if (pz < -6) pz = -6;
-          }
-
-          // console.log("new px: " + geometry.attributes.position.getX(40));
-
-          scene.children[i].position
-            .set(px, py, pz)
-            .add(offset);
-          geometry.attributes.position.setXYZ(i, px, py, pz);
-        }
-        if (explosionForce < 0.1) {
-          for (let i=NUM_INSTANCES; i<particlesCount; i++) {
+        if (!startGrav){
+          for (let i = NUM_INSTANCES; i < particlesCount; i++) {
             px = geometry.attributes.position.getX(i);
             py = geometry.attributes.position.getY(i);
             pz = geometry.attributes.position.getZ(i);
+
+            dx = geometry.attributes.explosionDirection.getX(i); 
+            dy = geometry.attributes.explosionDirection.getY(i); 
+            dz = geometry.attributes.explosionDirection.getZ(i);
+
+            // console.log("old px: " + geometry.attributes.position.getX(40));
+            if (dx != 0 && dy != 0 && dz != 0) {
+              // newPx = px + ((dx * explosionForce) / 200);
+              // newPy = py + ((dy * explosionForce) / 200);
+              // newPz = pz + ((dz * explosionForce) / 200);
+              
+              newPx = px + dx*initialSpeed*elapsedTime - 0.5*dx*resistanceForce*Math.pow(elapsedTime, 2);
+              newPy = py + dy*initialSpeed*elapsedTime - 0.5*dy*resistanceForce*Math.pow(elapsedTime, 2);
+              newPz = pz + dz*initialSpeed*elapsedTime - 0.5*dz*resistanceForce*Math.pow(elapsedTime, 2);
+
+              if (newPz < -6) newPz = -6;
+            }
+            
+            
+            // console.log("new px: " + geometry.attributes.position.getX(40));
+
+            scene.children[i+3].position
+              .set(newPx, newPy, newPz)
+              .add(offset);
+            geometry.attributes.position.setXYZ(i, newPx, newPy, newPz);
+          }
+          geometry.attributes.position.needsUpdate = true;
+
+          let speed = initialSpeed - resistanceForce*elapsedTime;
+          // console.log(speed);
+          if (speed < 0) {
+            // console.log("here");
+            startGrav = true;
+          }
+ 
+        }
+
+        if (startGrav) {
+          for (let i=NUM_INSTANCES; i<particlesCount; i++) {
+            // px = scene.children[i+3].position.x;
+            // py = scene.children[i+3].position.y;
+            // pz = scene.children[i+3].position.z;
+            
+            px = geometry.attributes.position.getX(i);
+            py = geometry.attributes.position.getY(i);
+            pz = geometry.attributes.position.getZ(i);
+
+            if (i === 50){
+              console.log(py);
+            }
+
             if (py > -10) {
               velocity = gravity * elapsedTime;
               displacement = (py) - (Math.pow(gravity * elapsedTime, 2) + velocity * elapsedTime) / 10;
               if (displacement < -10) displacement = -10;
     
-              scene.children[i].position
+              scene.children[i+3].position
               .set(px, displacement, pz)
               .add(offset);
     
-              geometry.attributes.position.setXYZ(i, px, displacement, pz);
+              // geometry.attributes.position.setXYZ(i, newPx, displacement, newPz);
             }
           }
         }
       }
-      explosionForce /= 1.2;
     }
     else {
       clock.start();
@@ -437,10 +443,11 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
 
   const clock = new THREE.Clock();
 
+ 
   document.body.appendChild(renderer.domElement);
   animate();
   explodeParticles();
-
+  
   // RESIZE HANDLER
   function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -449,6 +456,7 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   }
   window.addEventListener("resize", onWindowResize);
 };
+
 
 function getInput(canvasName, inputClassName, models) {
   const canvas = document.querySelector(canvasName);
