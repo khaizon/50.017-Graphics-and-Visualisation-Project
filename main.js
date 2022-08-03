@@ -8,7 +8,6 @@ import {
   unitize,
   computeBezier,
   getVolume,
-  savePositionState,
 } from "./utils";
 
 export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
@@ -342,9 +341,9 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
         let speed = animation_parameters.initialSpeed - animation_parameters.resistiveForce * elapsedTime;
 
         for (let i = NUM_INSTANCES; i < particlesCount; i++) {
-          startPx = geometry.attributes.morphEndPosition.getX(i);
-          startPy = geometry.attributes.morphEndPosition.getY(i);
-          startPz = geometry.attributes.morphEndPosition.getZ(i);
+          startPx = geometry.attributes.position.getX(i);
+          startPy = geometry.attributes.position.getY(i);
+          startPz = geometry.attributes.position.getZ(i);
 
           dx = geometry.attributes.explosionDirection.getX(i);
           dy = geometry.attributes.explosionDirection.getY(i);
@@ -365,7 +364,6 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
 
         // console.log(speed);
         if (speed < 0) {
-          savePositionState(geometry, "explodeEndPosition");
           explodeEndTime = elapsedTime;
           startGrav = true;
         }
@@ -378,9 +376,9 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
         for (let i = NUM_INSTANCES; i < particlesCount; i++) {
           py = geometry.attributes.position.getY(i);
 
-          startPx = geometry.attributes.explodeEndPosition.getX(i);
-          startPy = geometry.attributes.explodeEndPosition.getY(i);
-          startPz = geometry.attributes.explodeEndPosition.getZ(i);
+          startPx = geometry.attributes.position.getX(i);
+          startPy = geometry.attributes.position.getY(i);
+          startPz = geometry.attributes.position.getZ(i);
 
           if (py > -10) {
             displacement = startPy - (speed / 2) * gravityElapsedTime;
@@ -405,7 +403,6 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   function animate() {
     if (time >= 1) {
       if (isMorph) {
-        savePositionState(geometry, "morphEndPosition");
         startGrav = false;
         // console.log(geometry.attributes.morphEndPosition);
         // console.log(geometry.attributes.position);
@@ -421,10 +418,6 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
     }
 
     if (isReset) {
-      // clear morphEndPosition and explodeEndPosition
-      geometry.deleteAttribute("morphEndPosition");
-      geometry.deleteAttribute("explodeEndPosition");
-
       // replace position with a copy of startPosition
       geometry.setAttribute("position", new THREE.BufferAttribute(mesh1VerticesClone, 3));
       // console.log(geometry);
