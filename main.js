@@ -60,11 +60,13 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   dirLight.shadow.camera.lookAt(0, 0, -30);
   scene.add(dirLight);
   scene.add(new THREE.CameraHelper(dirLight.shadow.camera));
+  scene.children[2].visible = false;
 
   const geometry = new THREE.BufferGeometry();
 
   const sphereMaterial = {
-    color: 0xefff00,
+    excessVerticesColor: 0xefff00,
+    endingMeshColor: 0xefff00,
     transparent: true,
     opacity: 0.7,
     metalness: 0.2,
@@ -211,7 +213,7 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   for (let i = 0; i < numberOfEndingVertices; i++) {
     const geom = new THREE.SphereGeometry(0.1, 20, 20);
     const mat = new THREE.MeshStandardMaterial({
-      color: sphereMaterial.color,
+      color: sphereMaterial.endingMeshColor,
       roughness: sphereMaterial.roughness,
       metalness: sphereMaterial.metalness,
       transparent: true,
@@ -240,9 +242,14 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   materialFolder
     .add(sphereMaterial, "opacity", 0, 1)
     .onChange((value) => updateMaterial(value));
-  materialFolder.addColor(sphereMaterial, "color").onChange(() => {
+  materialFolder.addColor(sphereMaterial, "endingMeshColor").onChange(() => {
     updateMaterial();
   });
+  materialFolder
+    .addColor(sphereMaterial, "excessVerticesColor")
+    .onChange(() => {
+      updateMaterial();
+    });
   materialFolder.add(sphereMaterial, "metalness", 0, 1).onChange(() => {
     updateMaterial();
   });
@@ -253,11 +260,16 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
 
   console.log(scene);
   function updateMaterial() {
-    for (let i = 0; i < NUM_INSTANCES; i++) {
+    for (let i = 0; i < numberOfEndingVertices; i++) {
+      scene.children[i + 3].material.color.set(
+        sphereMaterial.excessVerticesColor
+      );
       scene.children[i + 3].material.opacity = sphereMaterial.opacity;
-      scene.children[i + 3].material.color.set(sphereMaterial.color);
       scene.children[i + 3].material.metalness = sphereMaterial.metalness;
       scene.children[i + 3].material.roughness = sphereMaterial.roughness;
+    }
+    for (let i = 0; i < NUM_INSTANCES; i++) {
+      scene.children[i + 3].material.color.set(sphereMaterial.endingMeshColor);
     }
   }
   // =============== END DEFINE MATERIALS GUI ================== //
@@ -497,7 +509,7 @@ function getInput(canvasName, inputClassName, models) {
     time *= 0.001; // convert time to seconds
 
     if (loaded) {
-      loadedObject.rotateY(0.005);
+      loadedObject.rotateY(0.01);
     }
 
     renderer.render(scene, camera);
