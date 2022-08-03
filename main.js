@@ -238,7 +238,6 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
       console.log(`${i} spheres added ${(i / NUM_INSTANCES) * 100}% complete`);
     }
   }
-  // animateMorph(0);
   // ================== END OF SPHERE ================== //
 
   // ============= DEFINE MATERIALS GUI ================== //
@@ -342,17 +341,11 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
           startPz = geometry.attributes.morphEndPosition.getZ(i);
 
           dx = geometry.attributes.explosionDirection.getX(i);
-          if (i === NUM_INSTANCES) {
-            console.log(dx);
-          }
           dy = geometry.attributes.explosionDirection.getY(i);
           dz = geometry.attributes.explosionDirection.getZ(i);
 
           if (dx != 0 && dy != 0 && dz != 0) {
             px = startPx + ((speed * dx) / 2) * elapsedTime;
-            if (i === NUM_INSTANCES) {
-              console.log(px);
-            }
             py = startPy + ((speed * dy) / 2) * elapsedTime;
             pz = startPz + ((speed * dz) / 2) * elapsedTime;
 
@@ -407,7 +400,7 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
     if (time >= 1) {
       if (isMorph) {
         savePositionState(geometry, "morphEndPosition");
-        console.log(geometry);
+        startGrav = false;
         // console.log(geometry.attributes.morphEndPosition);
         // console.log(geometry.attributes.position);
       }
@@ -426,13 +419,11 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
       geometry.deleteAttribute("morphEndPosition");
       geometry.deleteAttribute("explodeEndPosition");
 
-      // remove position and replace with a copy of startPosition
-      // geometry.deleteAttribute("position");
+      // replace position with a copy of startPosition
       geometry.setAttribute("position", new THREE.BufferAttribute(mesh1VerticesClone, 3));
-      console.log(geometry);
-      animateMorph(0);
+      // console.log(geometry);
       animateMorph(time);
-      console.log("called, time: " + time);
+      // console.log("called, time: " + time);
       isReset = false;
     }
 
