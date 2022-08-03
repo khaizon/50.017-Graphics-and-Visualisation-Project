@@ -238,7 +238,7 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
       console.log(`${i} spheres added ${(i / NUM_INSTANCES) * 100}% complete`);
     }
   }
-
+  // animateMorph(0);
   // ================== END OF SPHERE ================== //
 
   // ============= DEFINE MATERIALS GUI ================== //
@@ -277,22 +277,9 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   const animationFolder = gui.addFolder("Animation");
   animationFolder.add(timescale_placeholder, "timescale", 0.5, 5);
 
-  function advanceMoprh() {
-    if (time < 1) time += 0.01 / timescale_placeholder.timescale;
-    // console.log(time);
-  }
-  function deadvanceMoprh() {
-    if (time > 0) time -= 0.01 / timescale_placeholder.timescale;
-    // console.log(time);
-  }
-
   document.addEventListener("keypress", onDocumentKeyDown, false);
   function onDocumentKeyDown(event) {
-    if (event.code == "KeyL") {
-      advanceMoprh();
-    } else if (event.code == "KeyJ") {
-      deadvanceMoprh();
-    } else if (event.code == "KeyP") {
+    if (event.code == "KeyP") {
       isMorph = true;
     } else if (event.code == "KeyR") {
       time = 0;
@@ -334,7 +321,7 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   }
 
   const gravity = 0.06;
-  let velocity, displacement;
+  let displacement;
   const resistanceForce = 10;
   const initialSpeed = 5;
   var startGrav = false;
@@ -420,6 +407,7 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
     if (time >= 1) {
       if (isMorph) {
         savePositionState(geometry, "morphEndPosition");
+        console.log(geometry);
         // console.log(geometry.attributes.morphEndPosition);
         // console.log(geometry.attributes.position);
       }
@@ -434,6 +422,15 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
     }
 
     if (isReset) {
+      // clear morphEndPosition and explodeEndPosition
+      geometry.deleteAttribute("morphEndPosition");
+      geometry.deleteAttribute("explodeEndPosition");
+
+      // remove position and replace with a copy of startPosition
+      // geometry.deleteAttribute("position");
+      geometry.setAttribute("position", new THREE.BufferAttribute(mesh1VerticesClone, 3));
+      console.log(geometry);
+      animateMorph(0);
       animateMorph(time);
       console.log("called, time: " + time);
       isReset = false;
@@ -445,7 +442,6 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
 
   document.body.appendChild(renderer.domElement);
   animate();
-  // explodeParticles();
 
   // RESIZE HANDLER
   function onWindowResize() {
