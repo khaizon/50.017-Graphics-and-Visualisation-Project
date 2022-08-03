@@ -238,7 +238,7 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
       console.log(`${i} spheres added ${(i / NUM_INSTANCES) * 100}% complete`);
     }
   }
-  animateMorph(0);
+
   // ================== END OF SPHERE ================== //
 
   // ============= DEFINE MATERIALS GUI ================== //
@@ -303,8 +303,8 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
 
   function animateMorph(time) {
     const rotationM = new THREE.Matrix4();
-    rotationM.makeRotationY(lerp_value * Math.PI);
     lerp_value = computeBezier(1, 1, time)[1];
+    rotationM.makeRotationY(lerp_value * Math.PI);
 
     for (let i = 0; i < 2 * numberOfEndingVertices; i++) {
       const startPositionX = geometry.attributes.startPosition.getX(i);
@@ -355,11 +355,17 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
           startPz = geometry.attributes.morphEndPosition.getZ(i);
 
           dx = geometry.attributes.explosionDirection.getX(i);
+          if (i === NUM_INSTANCES) {
+            console.log(dx);
+          }
           dy = geometry.attributes.explosionDirection.getY(i);
           dz = geometry.attributes.explosionDirection.getZ(i);
 
           if (dx != 0 && dy != 0 && dz != 0) {
             px = startPx + ((speed * dx) / 2) * elapsedTime;
+            if (i === NUM_INSTANCES) {
+              console.log(px);
+            }
             py = startPy + ((speed * dy) / 2) * elapsedTime;
             pz = startPz + ((speed * dz) / 2) * elapsedTime;
 
@@ -429,6 +435,7 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
 
     if (isReset) {
       animateMorph(time);
+      console.log("called, time: " + time);
       isReset = false;
     }
 
