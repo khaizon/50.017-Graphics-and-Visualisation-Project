@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { RGB_PVRTC_2BPPV1_Format } from "three";
 
 export async function fillWithPoints(geometry, count) {
   geometry.computeBoundingBox();
@@ -68,10 +69,6 @@ function setRandomVector(min, max, mesh) {
     inside: isInside(v, mesh),
     vector: v,
   };
-  //   if (!isInside(v, mesh)) {
-  //     return setRandomVector(min, max, mesh);
-  //   }
-  //   return v;
 }
 
 // function to normalize the size of object
@@ -136,3 +133,133 @@ export function getVolume(geometry) {
 function signedVolumeOfTriangle(p1, p2, p3) {
   return p1.dot(p2.cross(p3)) / 6.0;
 }
+function isInsideGrid(v, grid, mesh) {
+  const SUBDIVIDE_COUNT = 10;
+  const bbox = mesh.geometry.boundingBox;
+  let x_length = Math.ceil(bbox.max.x - bbox.min.x);
+  let y_length = Math.ceil(bbox.max.y - bbox.min.y);
+  let z_length = Math.ceil(bbox.max.z - bbox.min.z);
+
+  let x_step = x_length / SUBDIVIDE_COUNT;
+  let y_step = y_length / SUBDIVIDE_COUNT;
+  let z_step = z_length / SUBDIVIDE_COUNT;
+
+  let x_grid_pos = Math.floor(v.x - bbox.min.x / x_step);
+  let y_grid_pos = Math.floor(v.y - bbox.min.y / y_step);
+  let z_grid_pos = Math.floor(v.z - bbox.min.z / z_step);
+
+  //   if (
+  //     gridMap[mesh.uuid][
+  //       (x_grid_pos,
+  //       x_grid_pos + 1,
+  //       y_grid_pos,
+  //       y_grid_pos + 1,
+  //       z_grid_pos,
+  //       z_grid_pos + 1)
+  //     ]
+  //   ) {
+  //     return gridMap[
+  //       (x_grid_pos,
+  //       x_grid_pos + 1,
+  //       y_grid_pos,
+  //       y_grid_pos + 1,
+  //       z_grid_pos,
+  //       z_grid_pos + 1)
+  //     ];
+  //   }
+
+  const x_to_check = [x_grid_pos, x_grid_pos + 1];
+  const y_to_check = [y_grid_pos, y_grid_pos + 1];
+  const z_to_check = [z_grid_pos, z_grid_pos + 1];
+
+  let hit = 0;
+  for (let x of x_to_check) {
+    for (let y of y_to_check) {
+      for (let z of z_to_check) {
+        if (grid[x][y][z]) {
+          hit++;
+        }
+      }
+    }
+  }
+  if (hit === 0) {
+    gridMap[mesh.uuid][
+      (x_grid_pos,
+      x_grid_pos + 1,
+      y_grid_pos,
+      y_grid_pos + 1,
+      z_grid_pos,
+      z_grid_pos + 1)
+    ] = false;
+    return false;
+  } else if (hit === 8) {
+    gridMap[mesh.uuid][
+      (x_grid_pos,
+      x_grid_pos + 1,
+      y_grid_pos,
+      y_grid_pos + 1,
+      z_grid_pos,
+      z_grid_pos + 1)
+    ] = true;
+    return true;
+  }
+  return isInsideMesh(v, mesh);
+}
+
+function isInsideMesh(v, mesh) {
+  const ray = new THREE.Raycaster(
+    v,
+    new THREE.Vector3(v.x + 1, v.y + 1, v.z + 1)
+  );
+  const intersects = ray.intersectObject(mesh);
+
+  return intersects.length % 2 == 1;
+}
+function lerp (p0, p1, t) {
+  return (1-t)*p0 + t*p1;
+}
+export function computeBezier(h, timescale, t) {
+  // construct simple cubic bezier (4 points)
+  let p1 = [], p2 = [], p3 = [], p4 = [];
+  let p12 = [], p23 = [], p34 = [];
+  let p123 = [], p234 = [];
+  let final = [];
+
+
+  p1[0] = 0.0;
+  p1[1] = 0.0;
+
+  p2[0] = 0.5*timescale;
+  p2[1] = 0.0;
+
+  p3[0] = 0.5*timescale;
+  p3[1] = h;
+  
+  p4[0] = timescale;
+  p4[1] = h;
+  
+  // TODO: recursive function?
+  // 1st round
+  p12[0] = lerp(p1[0], p2[0], t);
+  p12[1] = lerp(p1[1], p2[1], t);
+
+  p23[0] = lerp(p2[0], p3[0], t);
+  p23[1] = lerp(p2[1], p3[1], t);
+
+  p34[0] = lerp(p3[0], p4[0], t);
+  p34[1] = lerp(p3[1], p4[1], t);
+
+  // 2nd round
+  p123[0] = lerp(p12[0], p23[0], t);
+  p123[1] = lerp(p12[1], p23[1], t);
+
+  p234[0] = lerp(p23[0], p34[0], t);
+  p234[1] = lerp(p23[1], p34[1], t);
+
+  // 3rd round
+  final[0] = lerp(p123[0], p234[0], t);
+  final[1] = lerp(p123[1], p234[1], t);
+
+  return final;
+}
+
