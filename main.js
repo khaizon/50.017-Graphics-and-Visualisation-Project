@@ -271,10 +271,10 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   let isMorph = false;
   let isReset = true;
   let time = 0;
-  const timescale_placeholder = new THREE.Object3D();
-  timescale_placeholder.timescale = 2;
+  const animation_parameters = new THREE.Object3D();
+  animation_parameters.timescale = 2;
   const animationFolder = gui.addFolder("Animation");
-  animationFolder.add(timescale_placeholder, "timescale", 0.5, 5);
+  animationFolder.add(animation_parameters, "timescale", 0.5, 5);
 
   document.addEventListener("keypress", onDocumentKeyDown, false);
   function onDocumentKeyDown(event) {
@@ -318,11 +318,17 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
     }
     geometry.attributes.position.needsUpdate = true;
   }
-
-  const gravity = 0.06;
+  // gravity
+  animation_parameters.gravity = 0.06
+  animationFolder.add(animation_parameters, "gravity", 0.01, 0.1);
+  // explosion resistive force
+  animation_parameters.resistiveForce = 10;
+  animationFolder.add(animation_parameters, "resistiveForce", 5, 50);
+  // initial explosion particle speed
+  animation_parameters.initialSpeed = 5;
+  animationFolder.add(animation_parameters, "initialSpeed", 3, 20);
+  
   let displacement;
-  const resistanceForce = 10;
-  const initialSpeed = 5;
   var startGrav = false;
   let explodeEndTime;
   function explodeParticles() {
@@ -333,7 +339,7 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
     if (timePassed > 3) {
       const elapsedTime = timePassed - 3;
       if (!startGrav) {
-        let speed = initialSpeed - resistanceForce * elapsedTime;
+        let speed = animation_parameters.initialSpeed - animation_parameters.resistiveForce * elapsedTime;
 
         for (let i = NUM_INSTANCES; i < particlesCount; i++) {
           startPx = geometry.attributes.morphEndPosition.getX(i);
@@ -367,7 +373,7 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
 
       if (startGrav) {
         const gravityElapsedTime = timePassed - explodeEndTime;
-        let speed = gravity * gravityElapsedTime;
+        let speed = animation_parameters.gravity * gravityElapsedTime;
 
         for (let i = NUM_INSTANCES; i < particlesCount; i++) {
           py = geometry.attributes.position.getY(i);
@@ -407,7 +413,7 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
       isMorph = false;
       explodeParticles();
     } else if (isMorph && time < 1) {
-      time += 0.01 / timescale_placeholder.timescale;
+      time += 0.01 / animation_parameters.timescale;
       // console.log(lerp_value);
       clock.start();
 
