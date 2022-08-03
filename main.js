@@ -3,12 +3,7 @@ import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GUI } from "dat.gui";
 import styles from "/css/styles.css";
-import {
-  fillWithPoints,
-  unitize,
-  computeBezier,
-  getVolume,
-} from "./utils";
+import { fillWithPoints, unitize, computeBezier, getVolume } from "./utils";
 
 export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   // SCENE
@@ -213,7 +208,7 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   // =================== INSTANTIATE SPHERE ============= //
   const sphereCheckPoint = numberOfEndingVertices / 10;
   let sphereCheckPointCounter = 0;
-  for (let i = 0; i < 2 * numberOfEndingVertices; i++) {
+  for (let i = 0; i < numberOfEndingVertices; i++) {
     const geom = new THREE.SphereGeometry(0.1, 20, 20);
     const mat = new THREE.MeshStandardMaterial({
       color: sphereMaterial.color,
@@ -291,7 +286,7 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
     lerp_value = computeBezier(1, 1, time)[1];
     rotationM.makeRotationY(lerp_value * Math.PI);
 
-    for (let i = 0; i < 2 * numberOfEndingVertices; i++) {
+    for (let i = 0; i < numberOfEndingVertices; i++) {
       const startPositionX = geometry.attributes.startPosition.getX(i);
       const startPositionY = geometry.attributes.startPosition.getY(i);
       const startPositionZ = geometry.attributes.startPosition.getZ(i);
@@ -318,7 +313,7 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
     geometry.attributes.position.needsUpdate = true;
   }
   // gravity
-  animation_parameters.gravity = 0.06
+  animation_parameters.gravity = 0.06;
   animationFolder.add(animation_parameters, "gravity", 0.01, 0.1);
   // explosion resistive force
   animation_parameters.resistiveForce = 10;
@@ -326,7 +321,7 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   // initial explosion particle speed
   animation_parameters.initialSpeed = 5;
   animationFolder.add(animation_parameters, "initialSpeed", 3, 20);
-  
+
   let displacement;
   var startGrav = false;
   let explodeEndTime;
@@ -334,13 +329,16 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
     let px, py, pz, dx, dy, dz;
     let startPx, startPy, startPz;
     const timePassed = clock.getElapsedTime();
-    const particlesCount = geometry.attributes.position.count;
+
     if (timePassed > 3) {
       const elapsedTime = timePassed - 3;
       if (!startGrav) {
-        let speed = animation_parameters.initialSpeed - animation_parameters.resistiveForce * elapsedTime;
+        let speed =
+          animation_parameters.initialSpeed -
+          animation_parameters.resistiveForce * elapsedTime;
 
-        for (let i = NUM_INSTANCES; i < particlesCount; i++) {
+        for (let i = 0; i < numberOfEndingVertices; i++) {
+          if (i < NUM_INSTANCES) continue;
           startPx = geometry.attributes.position.getX(i);
           startPy = geometry.attributes.position.getY(i);
           startPz = geometry.attributes.position.getZ(i);
@@ -358,6 +356,7 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
           }
 
           scene.children[i + 3].position.set(px, py, pz).add(offset);
+
           geometry.attributes.position.setXYZ(i, px, py, pz);
         }
         geometry.attributes.position.needsUpdate = true;
@@ -373,7 +372,8 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
         const gravityElapsedTime = timePassed - explodeEndTime;
         let speed = animation_parameters.gravity * gravityElapsedTime;
 
-        for (let i = NUM_INSTANCES; i < particlesCount; i++) {
+        for (let i = 0; i < numberOfEndingVertices; i++) {
+          if (i < NUM_INSTANCES) continue;
           py = geometry.attributes.position.getY(i);
 
           startPx = geometry.attributes.position.getX(i);
@@ -419,7 +419,10 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
 
     if (isReset) {
       // replace position with a copy of startPosition
-      geometry.setAttribute("position", new THREE.BufferAttribute(mesh1VerticesClone, 3));
+      geometry.setAttribute(
+        "position",
+        new THREE.BufferAttribute(mesh1VerticesClone, 3)
+      );
       // console.log(geometry);
       animateMorph(time);
       // console.log("called, time: " + time);
