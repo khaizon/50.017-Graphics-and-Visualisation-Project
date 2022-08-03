@@ -3,7 +3,13 @@ import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GUI } from "dat.gui";
 import styles from "/css/styles.css";
-import { fillWithPoints, unitize, computeBezier, getVolume, savePositionState } from "./utils";
+import {
+  fillWithPoints,
+  unitize,
+  computeBezier,
+  getVolume,
+  savePositionState,
+} from "./utils";
 
 export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   // SCENE
@@ -139,7 +145,6 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
     }
   }
 
-
   // ======================================================= //
 
   // ================ STORE POSITIONS IN ARRAY ============== //
@@ -160,27 +165,34 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
     "endPosition2",
     new THREE.BufferAttribute(mesh2VerticesPart2, 3)
   );
-  
+
   // ========================================================= //
 
   const offset = new THREE.Vector3(0, 3, -30);
 
   const centerOfMesh = new THREE.Vector3();
   const endGeometry = new THREE.BufferGeometry();
-  endGeometry.setAttribute('position', new THREE.BufferAttribute(mesh2Vertices, 3));
+  endGeometry.setAttribute(
+    "position",
+    new THREE.BufferAttribute(mesh2Vertices, 3)
+  );
   endGeometry.computeBoundingBox();
   endGeometry.boundingBox.getCenter(centerOfMesh);
   console.log(centerOfMesh);
   let explosionDirection = new Float32Array(mesh2Vertices.length);
   let directionX, directionY, directionZ;
-  for (let i=NUM_INSTANCES * 3; i<mesh2Vertices.length; i += 3) {
+  for (let i = NUM_INSTANCES * 3; i < mesh2Vertices.length; i += 3) {
     directionX = mesh2Vertices[i] - centerOfMesh.x;
-    directionY = mesh2Vertices[i+1] - centerOfMesh.y;
-    directionZ = mesh2Vertices[i+2] - centerOfMesh.z;
-    const magnitude = Math.sqrt(Math.pow(directionX, 2) + Math.pow(directionY, 2) + Math.pow(directionZ, 2));
+    directionY = mesh2Vertices[i + 1] - centerOfMesh.y;
+    directionZ = mesh2Vertices[i + 2] - centerOfMesh.z;
+    const magnitude = Math.sqrt(
+      Math.pow(directionX, 2) +
+        Math.pow(directionY, 2) +
+        Math.pow(directionZ, 2)
+    );
     explosionDirection[i] = directionX / magnitude;
-    explosionDirection[i+1] = directionY / magnitude;
-    explosionDirection[i+2] = directionZ / magnitude;
+    explosionDirection[i + 1] = directionY / magnitude;
+    explosionDirection[i + 2] = directionZ / magnitude;
   }
   console.log(explosionDirection);
   geometry.setAttribute(
@@ -189,7 +201,7 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   );
 
   console.log(geometry.attributes);
-  
+
   // const originGeom = new THREE.SphereGeometry(0.1, 20, 20);
   // const testmat = new THREE.MeshBasicMaterial();
   // testmat.color = new THREE.Color(0xff0000);
@@ -226,6 +238,7 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
       console.log(`${i} spheres added ${(i / NUM_INSTANCES) * 100}% complete`);
     }
   }
+  animateMorph(0);
   // ================== END OF SPHERE ================== //
 
   // ============= DEFINE MATERIALS GUI ================== //
@@ -265,11 +278,11 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   animationFolder.add(timescale_placeholder, "timescale", 0.5, 5);
 
   function advanceMoprh() {
-    if (time < 1) time += 0.01/timescale_placeholder.timescale;
+    if (time < 1) time += 0.01 / timescale_placeholder.timescale;
     // console.log(time);
   }
   function deadvanceMoprh() {
-    if (time > 0) time -= (0.01/timescale_placeholder.timescale);
+    if (time > 0) time -= 0.01 / timescale_placeholder.timescale;
     // console.log(time);
   }
 
@@ -277,27 +290,23 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   function onDocumentKeyDown(event) {
     if (event.code == "KeyL") {
       advanceMoprh();
-    } 
-    else if (event.code == "KeyJ") {
+    } else if (event.code == "KeyJ") {
       deadvanceMoprh();
-    } 
-    else if (event.code == "KeyP") {
+    } else if (event.code == "KeyP") {
       isMorph = true;
-    }
-    else if (event.code == "KeyR") {
+    } else if (event.code == "KeyR") {
       time = 0;
       isMorph = false;
       isReset = true;
     }
   }
-  
+
   function animateMorph(time) {
     const rotationM = new THREE.Matrix4();
     rotationM.makeRotationY(lerp_value * Math.PI);
-    lerp_value =  computeBezier(1, 1, time)[1];
+    lerp_value = computeBezier(1, 1, time)[1];
 
     for (let i = 0; i < 2 * numberOfEndingVertices; i++) {
-
       const startPositionX = geometry.attributes.startPosition.getX(i);
       const startPositionY = geometry.attributes.startPosition.getY(i);
       const startPositionZ = geometry.attributes.startPosition.getZ(i);
@@ -310,15 +319,11 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
       const endPositionY = geometry.attributes.endPosition.getY(i);
       const endPositionZ = geometry.attributes.endPosition.getZ(i);
 
-      positionX =
-        (startPositionX * (1 - lerp_value) + endPositionX * lerp_value);
-      positionY =
-        (startPositionY * (1 - lerp_value) + endPositionY * lerp_value);
-      positionZ =
-        (startPositionZ * (1 - lerp_value) + endPositionZ * lerp_value);
-    
+      positionX = startPositionX * (1 - lerp_value) + endPositionX * lerp_value;
+      positionY = startPositionY * (1 - lerp_value) + endPositionY * lerp_value;
+      positionZ = startPositionZ * (1 - lerp_value) + endPositionZ * lerp_value;
 
-      scene.children[i+3].position
+      scene.children[i + 3].position
         .set(positionX, positionY, positionZ)
         .applyMatrix4(rotationM)
         .add(offset);
@@ -327,91 +332,86 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
     }
     geometry.attributes.position.needsUpdate = true;
   }
- 
-  
+
   const gravity = 0.06;
   let velocity, displacement;
-  const resistanceForce = 10 ;
+  const resistanceForce = 10;
   const initialSpeed = 5;
   var startGrav = false;
   let explodeEndTime;
   function explodeParticles() {
-      let px, py, pz, dx, dy, dz;
-      let startPx, startPy, startPz;
-      const timePassed = clock.getElapsedTime();
-      const particlesCount = geometry.attributes.position.count;
-      if (timePassed > 3) {
-        const elapsedTime = timePassed - 3;
-        if (!startGrav){
-          let speed = initialSpeed - resistanceForce*elapsedTime;
+    let px, py, pz, dx, dy, dz;
+    let startPx, startPy, startPz;
+    const timePassed = clock.getElapsedTime();
+    const particlesCount = geometry.attributes.position.count;
+    if (timePassed > 3) {
+      const elapsedTime = timePassed - 3;
+      if (!startGrav) {
+        let speed = initialSpeed - resistanceForce * elapsedTime;
 
-          for (let i = NUM_INSTANCES; i < particlesCount; i++) {
-            startPx = geometry.attributes.morphEndPosition.getX(i);
-            startPy = geometry.attributes.morphEndPosition.getY(i);
-            startPz = geometry.attributes.morphEndPosition.getZ(i);
+        for (let i = NUM_INSTANCES; i < particlesCount; i++) {
+          startPx = geometry.attributes.morphEndPosition.getX(i);
+          startPy = geometry.attributes.morphEndPosition.getY(i);
+          startPz = geometry.attributes.morphEndPosition.getZ(i);
 
-            dx = geometry.attributes.explosionDirection.getX(i); 
-            dy = geometry.attributes.explosionDirection.getY(i); 
-            dz = geometry.attributes.explosionDirection.getZ(i);
+          dx = geometry.attributes.explosionDirection.getX(i);
+          dy = geometry.attributes.explosionDirection.getY(i);
+          dz = geometry.attributes.explosionDirection.getZ(i);
 
-            if (dx != 0 && dy != 0 && dz != 0) {
-              px = startPx + (speed*dx/2)*elapsedTime;
-              py = startPy + (speed*dy/2)*elapsedTime;
-              pz = startPz + (speed*dz/2)*elapsedTime;
+          if (dx != 0 && dy != 0 && dz != 0) {
+            px = startPx + ((speed * dx) / 2) * elapsedTime;
+            py = startPy + ((speed * dy) / 2) * elapsedTime;
+            pz = startPz + ((speed * dz) / 2) * elapsedTime;
 
-              if (py < -10) py = -10;
-            }
-            
-            scene.children[i+3].position
-              .set(px, py, pz)
-              .add(offset);
-            geometry.attributes.position.setXYZ(i, px, py, pz);
+            if (py < -10) py = -10;
           }
-          geometry.attributes.position.needsUpdate = true;
 
-          // console.log(speed);
-          if (speed < 0) {
-            savePositionState(geometry, "explodeEndPosition");
-            explodeEndTime = elapsedTime;
-            startGrav = true;
-          }
- 
+          scene.children[i + 3].position.set(px, py, pz).add(offset);
+          geometry.attributes.position.setXYZ(i, px, py, pz);
         }
+        geometry.attributes.position.needsUpdate = true;
 
-        if (startGrav) {
-          const gravityElapsedTime = timePassed - explodeEndTime;
-          let speed = gravity*gravityElapsedTime;
-
-          for (let i=NUM_INSTANCES; i<particlesCount; i++) {
-            py = geometry.attributes.position.getY(i);
-            
-            startPx = geometry.attributes.explodeEndPosition.getX(i);
-            startPy = geometry.attributes.explodeEndPosition.getY(i);
-            startPz = geometry.attributes.explodeEndPosition.getZ(i);
-
-            
-            if (py > -10) {
-              displacement = startPy - (speed/2)*gravityElapsedTime;
-              
-              if (displacement < -10) displacement = -10;
-    
-              scene.children[i+3].position
-              .setComponent(1, displacement + offset.y);
-    
-              geometry.attributes.position.setXYZ(i, px, displacement, pz);
-            }
-          }
-          geometry.attributes.position.needsUpdate = true;
+        // console.log(speed);
+        if (speed < 0) {
+          savePositionState(geometry, "explodeEndPosition");
+          explodeEndTime = elapsedTime;
+          startGrav = true;
         }
       }
+
+      if (startGrav) {
+        const gravityElapsedTime = timePassed - explodeEndTime;
+        let speed = gravity * gravityElapsedTime;
+
+        for (let i = NUM_INSTANCES; i < particlesCount; i++) {
+          py = geometry.attributes.position.getY(i);
+
+          startPx = geometry.attributes.explodeEndPosition.getX(i);
+          startPy = geometry.attributes.explodeEndPosition.getY(i);
+          startPz = geometry.attributes.explodeEndPosition.getZ(i);
+
+          if (py > -10) {
+            displacement = startPy - (speed / 2) * gravityElapsedTime;
+
+            if (displacement < -10) displacement = -10;
+
+            scene.children[i + 3].position.setComponent(
+              1,
+              displacement + offset.y
+            );
+
+            geometry.attributes.position.setXYZ(i, px, displacement, pz);
+          }
+        }
+        geometry.attributes.position.needsUpdate = true;
+      }
+    }
   }
 
   const clock = new THREE.Clock();
   var lerp_value;
   function animate() {
-    
-
-    if (time >= 1){
+    if (time >= 1) {
       if (isMorph) {
         savePositionState(geometry, "morphEndPosition");
         // console.log(geometry.attributes.morphEndPosition);
@@ -419,28 +419,27 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
       }
       isMorph = false;
       explodeParticles();
-    }
-    else if(isMorph && time < 1){
-      time += 0.01/timescale_placeholder.timescale;
+    } else if (isMorph && time < 1) {
+      time += 0.01 / timescale_placeholder.timescale;
       // console.log(lerp_value);
       clock.start();
 
       animateMorph(time);
     }
 
-    if (isReset){
+    if (isReset) {
       animateMorph(time);
       isReset = false;
     }
-    
+
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
   }
- 
+
   document.body.appendChild(renderer.domElement);
   animate();
   // explodeParticles();
-  
+
   // RESIZE HANDLER
   function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -449,7 +448,6 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   }
   window.addEventListener("resize", onWindowResize);
 };
-
 
 function getInput(canvasName, inputClassName, models) {
   const canvas = document.querySelector(canvasName);
