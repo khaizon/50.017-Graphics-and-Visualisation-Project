@@ -457,7 +457,7 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
   window.addEventListener("resize", onWindowResize);
 };
 
-function getInput(canvasName, inputClassName, models) {
+function getInput(canvasName, inputClassName, modelArray, defaultMode) {
   const canvas = document.querySelector(canvasName);
   const renderer = new THREE.WebGLRenderer({ canvas });
 
@@ -472,30 +472,41 @@ function getInput(canvasName, inputClassName, models) {
 
   let loadedObject;
   let loaded = false;
+
+  function addObject(fileUrl) {
+    const objLoader = new OBJLoader();
+
+    objLoader.load(fileUrl, function (object) {
+      loadedObject = object;
+      loaded = true;
+
+      const normalised = unitize(object, 2);
+
+      if (modelArray.length > 0) {
+        scene.remove(modelArray[0]);
+        modelArray.pop();
+      }
+
+      scene.add(normalised);
+
+      modelArray.push(normalised);
+      renderer.render(scene, camera);
+    });
+  }
+
+  if (defaultMode && inputClassName === ".inputfileStarting") {
+    addObject("./public/data/bunny.obj");
+  }
+  if (defaultMode && inputClassName === ".inputfileEnding") {
+    addObject("./public/data/garg.obj");
+  }
+
   document
     .querySelector(inputClassName)
     .addEventListener("change", function (e) {
       var file = e.currentTarget.files[0];
-
       const url = URL.createObjectURL(file);
-
-      const objLoader = new OBJLoader();
-
-      objLoader.load(url, function (object) {
-        loadedObject = object;
-        loaded = true;
-        console.log(object);
-        const normalised = unitize(object, 2);
-        scene.add(normalised);
-        const position =
-          inputClassName === ".inputfileStarting"
-            ? "startPosition"
-            : "endPosition";
-        console.log(position);
-        models.push(normalised);
-        positions.push(position);
-        renderer.render(scene, camera);
-      });
+      addObject(url);
     });
   {
     const color = 0xffffff;
@@ -520,21 +531,25 @@ function getInput(canvasName, inputClassName, models) {
   requestAnimationFrame(render);
 }
 
-const models = [];
-const positions = [];
+const startingModel = [];
+const endingModel = [];
 
-getInput("#c1", ".inputfileStarting", models);
-getInput("#c2", ".inputfileEnding", models);
+getInput("#c1", ".inputfileStarting", startingModel, false);
+getInput("#c2", ".inputfileEnding", endingModel, false);
 
 function maybeStart() {
   const numParticles = document.getElementById("noParticles").value;
-  if (models.length === 2) {
-    if (positions[0] === "startPosition") {
-      particles(models[0], models[1], numParticles);
-    } else {
-      particles(models[1], models[0], numParticles);
-    }
+  if (startingModel.length > 0 && endingModel.length > 0) {
+    particles(startingModel[0], endingModel[0], numParticles);
+    return;
   }
+  alert("Please select both models");
 }
 
 document.querySelector(".start").addEventListener("click", maybeStart);
+
+document.querySelector(".default").addEventListener("click", function () {
+  document.getElementById("noParticles").value = 50;
+  getInput("#c1", ".inputfileStarting", startingModel, true);
+  getInput("#c2", ".inputfileEnding", endingModel, true);
+});
