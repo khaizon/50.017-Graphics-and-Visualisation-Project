@@ -460,7 +460,6 @@ export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
 function getInput(canvasName, inputClassName, modelArray, defaultMode) {
   const canvas = document.querySelector(canvasName);
   const renderer = new THREE.WebGLRenderer({ canvas });
-
   const fov = 75;
   const aspect = 1; // the canvas default
   const near = 0.1;

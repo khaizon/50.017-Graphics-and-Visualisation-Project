@@ -1,56 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Morph and Explode</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css?family=Montserrat"
+    />
+    <link rel="icon" href="./circle.png" type="image/x-icon" />
+  </head>
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Morph and Explode</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat">
-  <link rel = "icon" href = 
-"./circle.png" 
-        type = "image/x-icon">
-</head>
+  <body>
+    <script type="module" src="./main.js"></script>
 
-<body>
+    <div id="modal">
+      <div class="models-container">
+        <label for="myFileStart" class="custom-file-upload">
+          <div>Upload Starting Shape</div>
+        </label>
+        <input
+          type="file"
+          id="myFileStart"
+          size="50"
+          class="inputfileStarting"
+        />
+        <canvas id="c1" class="canvas"></canvas>
+        <label for="myFileEnd" class="custom-file-upload">
+          <div>Upload Ending Shape</div>
+        </label>
+        <input type="file" id="myFileEnd" size="50" class="inputfileEnding" />
+        <canvas id="c2" class="canvas"></canvas>
+        <div class="h1">---------- OR ----------</div>
 
-  <script type="module" src="./main.js">
-  </script>
+        <button id="default" class="default">
+          Default Rabbit and Gargoyle
+        </button>
+      </div>
+      <div class="container">
+        <div class="h1">Number of Vertices</div>
+        <input
+          type="text"
+          id="noParticles"
+          class="noParticles"
+          placeholder="eg. 50"
+        />
+      </div>
 
-  <div id='modal'>
-    <div class="container">
-      <div class="h1">Starting Shape</div>
-      <label for="file-upload" class="custom-file-upload">
-        <i class="fa fa-cloud-upload"></i> Custom Upload
-    </label>
-      <input type="file" id="myFile" size="50" class=" inputfileStarting">
-      <canvas id="c1"></canvas>
-    </div>
-    <div class="container">
-      <div class="h1">Ending Shape</div>
-      <input type="file" id="myFile" size="50" class=" inputfileEnding">
-      <canvas id="c2"></canvas>
-    </div>
-    <div class="containerRow">
-      <button id="default" class="default">Choose Default</button>
-      <div class="h1">
-        Rabbit and Gargoyle
+      <div class="containerRow">
+        <button id="start" class="start">Start</button>
+      </div>
+      <div class="container">
+        <div class="h1">Instructions</div>
+        <div class="h1">"<b>P</b>" to start animation</div>
+        <div class="h1">"<b>R</b>" to reset</div>
       </div>
     </div>
-    <div class="container">
-      <div class="h1">Number of Vertices</div>
-      <input type="text" id="noParticles" class="noParticles" placeholder="eg. 50">
-    </div>
-
-    <div class="containerRow">
-      <button id="start" class="start">start</button>
-    </div>
-    <div class="container">
-      <div class="h1">Instructions</div>
-      <div class="h1">"<b>P</b>" to start animation</div>
-      <div class="h1">"<b>R</b>" to reset</div>
-   
-    </div>
-  </div>
-</body>
-
+  </body>
 </html>
