@@ -495,10 +495,10 @@ function getInput(canvasName, inputClassName, modelArray, defaultMode) {
   }
 
   if (defaultMode && inputClassName === ".inputfileStarting") {
-    addObject("./public/data/bunny.obj");
+    addObject("./data/bunny.obj");
   }
   if (defaultMode && inputClassName === ".inputfileEnding") {
-    addObject("./public/data/garg.obj");
+    addObject("./data/garg.obj");
   }
 
   document
