@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GUI } from "dat.gui";
-import styles from "/css/styles.css";
+import "./css/styles.css";
 import { fillWithPoints, unitize, computeBezier, getVolume } from "./utils";
 
 export const particles = async (startingModel, endingModel, NUM_INSTANCES) => {
